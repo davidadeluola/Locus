@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@import "./styles/author.css";
+
+/* Base resets for a full-page app */
+:root {
+  --font-author: "Author", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --color-background: #09090b;
+  --color-surface: #18181b;
+  --color-border: #27272a;
+  --color-brand-orange: #ff4d00;
+  --color-success: #22c55e;
+  font-family: var(--font-author);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+section[id] {
+  scroll-margin-top: 96px;
+}
+
+/* UTILITIES */
+
+@layer utilities {
+  .font-author {
+    font-family: var(--font-author);
+  }
+
+  .bg-locus-gradient {
+    background: radial-gradient(circle at 50% -20%,
+        rgba(255, 77, 0, 0.15) 0%,
+        rgba(9, 9, 11, 1) 70%);
+  }
+
+  .bg-locus-grid {
+    background-image: 
+      linear-gradient(to right, rgba(39, 39, 42, 0.2) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(39, 39, 42, 0.2) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+body {
+  margin: 0;
+  min-block-size: 100vh;
+  /* Removed display: flex and place-items: center so content scrolls normally */
+  background-color: var(--color-background);
+}
+
+/* Global Link Styles */
+/* a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.2s;
+} */
+
+/* Remove default Vite button styling so Tailwind classes take over */
+/* button {
+  all: unset;
+  cursor: pointer;
+  box-sizing: border-box;
+} */
+
+/* Component Styles */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  opacity: 0.12;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
