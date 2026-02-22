@@ -57,7 +57,7 @@ const Features = () => {
 
         {/* 2. The Radial Core Glow */}
         <motion.div
-          className="absolute w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px] pointer-events-none"
+          className="absolute w-125 h-125 bg-orange-600/10 rounded-full blur-[120px] pointer-events-none"
           animate={{ scale: [1, 1.15, 1] }}
           transition={{ duration: 5, repeat: Infinity }}
         />

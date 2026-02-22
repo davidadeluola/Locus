@@ -1,0 +1,19 @@
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.scanner-line {
+  block-size: 2px;
+  background: linear-gradient(90deg, transparent, #f97316, transparent);
+  animation: scan 2s infinite linear;
+}

@@ -75,12 +75,12 @@ const Navbar = () => {
           </nav>
 
           <div className="flex items-center gap-4">
-            <a
-              href="#get-started"
+            <Link
+              to="/signup"
               className="hidden md:inline-block px-8 py-3 border border-orange-600 text-white font-bold font-author rounded-sm hover:bg-orange-700 transition-colors text-sm uppercase tracking-wide"
             >
               Get Started
-            </a>
+            </Link>
 
             {/* Mobile Menu Trigger */}
             <button
@@ -141,13 +141,13 @@ const Navbar = () => {
           })}
           
           <div className="pt-6">
-            <a
-              href="#get-started"
+            <Link
+              to="/signup"
               className="block w-full py-4 text-white bg-orange-600 hover:bg-orange-700 transition-colors font-bold font-author text-center rounded-sm"
               onClick={() => setIsMenuOpen(false)}
             >
               Get Started
-            </a>
+            </Link>
           </div>
         </nav>
       </div>

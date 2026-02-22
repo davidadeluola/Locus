@@ -10,7 +10,7 @@ const GeoStatusVisual = () => {
       <div className="absolute inset-4 border border-zinc-800 rounded-full animate-[ping_3s_linear_infinite]" />
 
       {/* Radar Scanner */}
-      <div className="absolute inset-0 rounded-full border border-orange-600/20 bg-gradient-to-tr from-transparent via-transparent to-orange-600/10 animate-[spin_5s_linear_infinite]" />
+      <div className="absolute inset-0 rounded-full border border-orange-600/20 bg-linear-to-tr from-transparent via-transparent to-orange-600/10 animate-[spin_5s_linear_infinite]" />
 
       {/* Crosshair */}
       <div className="absolute top-1/2 left-0 w-full h-px bg-zinc-800 -translate-y-1/2" />

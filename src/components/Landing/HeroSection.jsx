@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { ArrowUpRight, MapPin, ShieldCheck, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { useGeolocation } from "../../hooks/useGeolocation";
+
+const MotionLink = motion.create(Link);
 
 const HeroSection = () => {
   const { latitude, longitude, loading, error } = useGeolocation();
@@ -68,7 +71,7 @@ const HeroSection = () => {
     >
       {/* LEFT CONTAINER: The "Intelligence" Side */}
       <motion.div
-        className="w-full md:w-1/2 bg-zinc-50 flex flex-col justify-center px-6 sm:px-12 lg:px-24 py-16 md:py-0 relative"
+        className="w-full md:w-1/2 bg-zinc-50 border-r border-zinc-900 flex flex-col justify-center px-6 sm:px-12 lg:px-24 py-16 md:py-0 relative"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
@@ -76,7 +79,7 @@ const HeroSection = () => {
       >
         <motion.div className="space-y-6 md:space-y-8 relative z-10" variants={containerVariants}>
           <motion.div className="flex items-center gap-3" variants={itemVariants}>
-            <span className="bg-orange-600/10 text-orange-600 px-3 py-1 rounded-md text-xs font-bold tracking-widest uppercase">
+            <span className="bg-orange-600/10 text-orange-600  px-3 py-1 rounded-md text-xs font-bold tracking-widest uppercase">
               Version 1.0 Deployment
             </span>
             <div className="h-px grow bg-zinc-200 hidden md:block" />
@@ -92,19 +95,19 @@ const HeroSection = () => {
             Next-gen attendance protocol for{" "}
             <span className="text-zinc-900 font-bold">LASUSTECH Engineers</span>
             . Eliminating proxy culture through geolocation and TOTP
-            verification.
+            verification—phasing out the era of manual, paper-based attendance.
           </motion.p>
 
           <motion.div className="flex flex-col sm:flex-row gap-4 pt-4" variants={itemVariants}>
-            <motion.a
-              href="#get-started"
+            <MotionLink
+              to="/signup"
               className="group bg-zinc-950 text-white px-8 py-4 rounded-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-all duration-300 shadow-xl shadow-zinc-900/10"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               <span className="font-bold">INITIALIZE SESSION</span>
               <Zap size={18} className="fill-current" />
-            </motion.a>
+            </MotionLink>
             <motion.button
               className="border-2 border-zinc-200 text-zinc-900 px-8 py-4 rounded-sm font-bold hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 group"
               whileHover={{ scale: 1.02 }}
@@ -132,7 +135,7 @@ const HeroSection = () => {
 
       {/* RIGHT CONTAINER: The "Validation" Side */}
       <motion.div
-        className="w-full md:w-1/2 bg-orange-600 relative flex items-center justify-center py-20 md:py-0 border-t-1"
+        className="w-full md:w-1/2 bg-orange-600  relative flex items-center justify-center py-20 md:py-0 border-t"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
@@ -168,7 +171,7 @@ const HeroSection = () => {
 
           {/* Floating Data Tags */}
           <div className="absolute -top-6 -right-12 bg-white text-zinc-950 p-3 rounded-lg shadow-xl font-mono text-xs font-bold border-2 border-zinc-950 animate-float">
-            LOC: {loading ? "..." : error ? "N/A" : `${longitude}°`}
+            LONG: {loading ? "..." : error ? "N/A" : `${longitude}°`}
           </div>
           <div className="absolute top-20 -left-18 bg-white text-zinc-950 p-3 rounded-lg shadow-xl font-mono text-xs font-bold border-2 border-zinc-950 animate-float">
             LAT: {loading ? "..." : error ? "N/A" : `${latitude}°`}

@@ -61,7 +61,7 @@ const Footer = () => {
         </div>
 
         {/* RIGHT: Separate Map/Geospatial Logic */}
-        <div className="w-full md:w-1/2 bg-zinc-900/50 relative flex flex-col items-center md:flex justify-center p-8 md:p-16 min-h-[400px]">
+        <div className="w-full md:w-1/2 bg-zinc-900/50 relative flex flex-col items-center md:flex justify-center p-8 md:p-16 min-h-100">
           <GeoStatusVisual />
           
           <div className="mt-8 text-center">

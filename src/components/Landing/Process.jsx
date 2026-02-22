@@ -40,7 +40,7 @@ const Process = () => {
     >
       {/* LEFT/TOP: The "Live Feed" Visualizer (Orange) */}
       <motion.div
-        className="w-full hidden md:flex md:w-1/2 bg-orange-600 relative  items-center justify-center py-24 md:py-0"
+        className="w-full hidden md:flex md:w-1/2 bg-orange-600 relative border-r border-zinc-900 items-center justify-center py-24 md:py-0"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
@@ -123,7 +123,7 @@ const Process = () => {
           {/* Process List */}
           <div className="relative">
             {/* Vertical Connecting Line (Desktop) */}
-            <div className="absolute left-[39px] top-0 bottom-0 w-px bg-zinc-100 hidden md:block" />
+            <div className="absolute left-9.75 top-0 bottom-0 w-px bg-zinc-100 hidden md:block" />
 
             <motion.div
               className="space-y-12 relative"
