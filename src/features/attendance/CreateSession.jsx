@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { sessionRepository, courseRepository } from '../../services/repositories/index.js';
+import sessionService from '../../services/domain/sessionService';
 import notify from '../../services/notify.jsx';
 import CreateSessionForm from './components/CreateSessionForm';
 import ActiveSession from './components/ActiveSession';
@@ -111,7 +112,7 @@ const CreateSession = ({ classId, onSessionCreated }) => {
       setTimeRemaining(durationMinutes * 60);
 
       // Update global active session so dashboards see the new session
-      try { setActiveSession(data); } catch (e) { /* ignore if context not present */ }
+      try { setActiveSession(data); } catch { /* ignore if context not present */ }
 
       if (onSessionCreated) {
         onSessionCreated(data);
@@ -122,27 +123,99 @@ const CreateSession = ({ classId, onSessionCreated }) => {
     } finally {
       setLoading(false);
     }
-  }, [user.id, durationMinutes, selectedClassId, saveSession, onSessionCreated]);
+  }, [user.id, durationMinutes, selectedClassId, saveSession, onSessionCreated, setActiveSession]);
 
   const endSession = async () => {
     if (!session) return;
 
     try {
+      // finalize and archive session (copy logs to audit and mark archived)
+      try {
+        await sessionRepository.finalizeSession(session.id);
+      } catch (e) {
+        // best-effort; continue to clear local state
+        console.warn('finalizeSession failed', e);
+      }
+
       await sessionRepository.update(session.id, { expires_at: new Date().toISOString() });
+
+      // attempt to build a session summary and export to Excel immediately
+      try {
+        const room = await sessionService.buildRoom(session.id);
+        if (room) {
+          const ExcelMod = await import('exceljs');
+          const ExcelJS = ExcelMod.default || ExcelMod;
+          const wb = new ExcelJS.Workbook();
+          const ws = wb.addWorksheet('Session Summary');
+          ws.columns = [
+            { header: 's/n', key: 'sn', width: 8 },
+            { header: 'filename', key: 'filename', width: 40 },
+            { header: 'attendant_count', key: 'attendant_count', width: 20 },
+            { header: 'date', key: 'date', width: 24 },
+          ];
+
+          const filename = `${(room.class?.title || 'session').replace(/\s+/g, '_')}_attendance.xlsx`;
+          ws.addRow({ sn: 1, filename, attendant_count: room.metrics?.present || 0, date: room.session?.expires_at || new Date().toISOString() });
+
+          const buf = await wb.xlsx.writeBuffer();
+          const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.setAttribute('download', filename);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+        }
+      } catch (e) {
+        console.warn('session export failed', e);
+      }
+
       setSession(null);
       setTimeRemaining(0);
       clearStoredSession();
-      try { setActiveSession(null); } catch (e) { /* ignore */ }
-      notify.info('Session terminated');
+      try { setActiveSession(null); } catch { /* ignore */ }
+      notify.info('Session terminated and archived');
     } catch (err) {
       console.error("❌ Error ending session:", err);
+    }
+  };
+
+  const extendSession = async (minutes = 5) => {
+    if (!session) return;
+    try {
+      const currentExpires = new Date(session.expires_at || Date.now());
+      const newExpires = new Date(currentExpires.getTime() + minutes * 60 * 1000);
+      const updated = await sessionRepository.update(session.id, { expires_at: newExpires.toISOString() });
+      // update local state
+      setSession(updated);
+      setTimeRemaining(Math.max(0, Math.floor((new Date(updated.expires_at) - new Date()) / 1000)));
+      notify.success(`Session extended by ${minutes} minutes`);
+      try { setActiveSession(updated); } catch { /* ignore */ }
+    } catch (err) {
+      console.error('extendSession failed', err);
+      notify.error('Failed to extend session');
+    }
+  };
+
+  const regenerateSession = async () => {
+    if (!session?.id) return;
+    try {
+      const updated = await sessionService.regenerateOtp(session.id);
+      setSession(updated);
+      saveSession(updated);
+      try { setActiveSession(updated); } catch { /* ignore */ }
+      notify.info('Session regenerated');
+    } catch (err) {
+      console.error('regenerateSession failed', err);
+      notify.error('Failed to regenerate session');
     }
   };
 
   // Sync savedSession with global context on mount
   useEffect(() => {
     if (savedSession) {
-      try { setActiveSession(savedSession); } catch (e) { /* ignore */ }
+      try { setActiveSession(savedSession); } catch { /* ignore */ }
     }
   }, [savedSession, setActiveSession]);
 
@@ -166,7 +239,14 @@ const CreateSession = ({ classId, onSessionCreated }) => {
           </motion.div>
         ) : (
           <motion.div key="active" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-            <ActiveSession session={session} timeRemaining={timeRemaining} endSession={endSession} formatTime={formatTime} />
+            <ActiveSession
+              session={session}
+              timeRemaining={timeRemaining}
+              endSession={endSession}
+              extendSession={extendSession}
+              regenerateSession={regenerateSession}
+              formatTime={formatTime}
+            />
           </motion.div>
         )}
       </AnimatePresence>

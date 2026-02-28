@@ -3,8 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import AppRoutes from "./routes/AppRoutes";
 import { useAuthContext } from "./context/AuthContext";
 import Preloader from "./components/ui/Preloader";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster } from 'sonner';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const App = () => {
@@ -32,16 +31,7 @@ const App = () => {
         )
       }
     >
-      <ToastContainer
-        position="bottom-right"
-        toastStyle={{
-          background: '#09090b',
-          border: '1px solid #27272a',
-          fontFamily: 'monospace',
-          textTransform: 'uppercase',
-          color: '#e6e6e6'
-        }}
-      />
+      <Toaster position="top-right" richColors={false} visibleToasts={1} closeButton={false} />
       <AnimatePresence>{loading && <Preloader />}</AnimatePresence>
       {!loading && <AppRoutes />}
     </ErrorBoundary>

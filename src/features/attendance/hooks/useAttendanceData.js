@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { supabase } from '../../../api/supabase.js';
 import { useProfileCache } from '../../../hooks/useProfileCache';
+import { enrollmentRepository } from '../../../services/repositories/index.js';
 
 export default function useAttendanceData(sessionId) {
   const { getProfile, cacheProfile, cacheProfiles } = useProfileCache();
@@ -16,7 +17,7 @@ export default function useAttendanceData(sessionId) {
         .from('profiles')
         .select('id, full_name, matric_no, email, department, level')
         .eq('id', studentId)
-        .single();
+        .maybeSingle();
       if (error) return null;
       if (profile) cacheProfile(studentId, profile);
       return profile || null;
@@ -43,40 +44,18 @@ export default function useAttendanceData(sessionId) {
       setSessionInfo(data || null);
       if (!data?.class_id) return setEnrolledStudents([]);
 
-      const { data: classEnrollments, error: enrollErr } = await supabase
-        .from('class_enrollments')
-        .select(`id, student_id, created_at, profiles!student_id(id, full_name, matric_no, email, department, level)`)
-        .eq('class_id', data.class_id)
-        .order('created_at', { ascending: true });
-
-      if (enrollErr) {
-        // fallback without explicit alias
-        try {
-          const { data: fallback } = await supabase
-            .from('class_enrollments')
-            .select(`id, student_id, created_at, profiles:student_id ( id, full_name, matric_no, email, department, level )`)
-            .eq('class_id', data.class_id)
-            .order('created_at', { ascending: true });
-          if (!mounted) return;
-          if (fallback && fallback.length) {
-            const profilesWithId = fallback.map((e) => e.profiles).filter(Boolean);
-            if (profilesWithId.length) cacheProfiles(profilesWithId);
-            setEnrolledStudents(fallback || []);
-          } else {
-            setEnrolledStudents([]);
-          }
-        } catch (fb) {
-          console.error('useAttendanceData.fetchSessionInfo (fallback)', fb);
-          if (!mounted) return;
-          setEnrolledStudents([]);
-        }
-      } else {
+      try {
+        const classEnrollments = await enrollmentRepository.findByClassId(data.class_id);
         if (!mounted) return;
         if (classEnrollments && classEnrollments.length) {
           const profilesWithId = classEnrollments.map((e) => e.profiles).filter(Boolean);
           if (profilesWithId.length) cacheProfiles(profilesWithId);
         }
         setEnrolledStudents(classEnrollments || []);
+      } catch (e) {
+        console.error('useAttendanceData.fetchSessionInfo (enrollmentRepository)', e);
+        if (!mounted) return;
+        setEnrolledStudents([]);
       }
     } catch (err) {
       console.error('useAttendanceData.fetchSessionInfo', err);
@@ -115,19 +94,17 @@ export default function useAttendanceData(sessionId) {
     }
   }, [sessionId, cacheProfiles, getProfile, fetchProfileDirectly, calculateStats, fetchSessionInfo]);
 
-  // If there's no sessionId, ensure we show an empty state instead of a perpetual loader
+  
+
   useEffect(() => {
     if (!sessionId) {
+      setLoading(false);
       setAttendanceRecords([]);
       setSessionInfo(null);
       setEnrolledStudents([]);
       setStats({ total: 0, avgDistance: 0 });
-      setLoading(false);
+      return;
     }
-  }, [sessionId]);
-
-  useEffect(() => {
-    if (!sessionId) return;
     let mounted = true;
     fetchAttendance();
 
@@ -174,7 +151,11 @@ export default function useAttendanceData(sessionId) {
         '', '', sessionInfo.id, sessionInfo.created_at || '', sessionInfo.expires_at || '', enrollment.student_id || '', profile.full_name || '', profile.matric_no || '', profile.email || '', profile.department || '', profile.level ?? '', signedRecord ? 'SIGNED' : 'PENDING', signedRecord?.signed_at || '', signedRecord?.distance_meters ?? ''
       ];
     });
-    const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);

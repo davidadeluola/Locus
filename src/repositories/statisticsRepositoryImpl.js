@@ -70,11 +70,12 @@ export const StatisticsRepository = {
 
       const { data: sessions, error: sessionsError } = await supabase
         .from('sessions')
-        .select('id')
+        .select('id, class_id, expires_at')
         .eq('lecturer_id', lecturerId);
 
       if (sessionsError) throw sessionsError;
-      const sessionIds = sessions?.map(s => s.id) || [];
+      const sessionRows = sessions || [];
+      const sessionIds = sessionRows.map(s => s.id);
       const sessionCount = sessionIds.length;
 
       let attendanceCount = 0;
@@ -88,8 +89,34 @@ export const StatisticsRepository = {
         attendanceCount = count || 0;
       }
 
-      const overallRate = sessionCount > 0 && totalStudents > 0
-        ? Math.round(((attendanceCount || 0) / (sessionCount * totalStudents)) * 100)
+      const enrollCountByClass = {};
+      if (courseIds.length > 0) {
+        try {
+          const { data: enrollRowsByClass } = await supabase
+            .from('class_enrollments')
+            .select('class_id, student_id')
+            .in('class_id', courseIds);
+
+          (enrollRowsByClass || []).forEach((row) => {
+            if (!row?.class_id || !row?.student_id) return;
+            if (!enrollCountByClass[row.class_id]) {
+              enrollCountByClass[row.class_id] = new Set();
+            }
+            enrollCountByClass[row.class_id].add(row.student_id);
+          });
+        } catch (e) {
+          console.warn('⚠️ Could not compute enrollment counts by class for overall rate:', e);
+        }
+      }
+
+      const expectedAttendanceTotal = sessionRows.reduce((sum, session) => {
+        const classSet = enrollCountByClass[session.class_id];
+        const classSize = classSet ? classSet.size : 0;
+        return sum + classSize;
+      }, 0);
+
+      const overallRate = expectedAttendanceTotal > 0
+        ? Math.round(((attendanceCount || 0) / expectedAttendanceTotal) * 100)
         : 0;
 
       return {
@@ -104,7 +131,7 @@ export const StatisticsRepository = {
     }
   },
 
-  async getSessionPerformance(sessionId, expectedStudents = 50) {
+  async getSessionPerformance(sessionId, expectedStudents = 0) {
     try {
       const { count, error } = await supabase
         .from('attendance_logs')

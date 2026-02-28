@@ -11,11 +11,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../hooks/useUser';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useLecturerDashboard } from '../../hooks/useDashboardRepository';
 import { LecturerStatsGrid, RecentSessionsList, SessionPerformanceCard } from '../../components/dashboard/LecturerDashboardComponents';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import repos from '../../services/repositories/index.js';
 import CourseRoomsList from './CourseRoomsList';
 import useRealtimeClasses from '../../hooks/useRealtimeClasses';
 import SessionCreator from '../sessions/SessionCreator';
@@ -24,7 +23,6 @@ import AttendanceList from '../attendance/AttendanceList';
 // Debug helper: log imported components to catch any undefined imports causing render errors
 /* istanbul ignore next */
 try {
-  // eslint-disable-next-line no-console
   console.log('DBG Imported dashboard components', {
     LecturerStatsGrid,
     RecentSessionsList,
@@ -34,7 +32,6 @@ try {
     AttendanceList,
   });
 } catch (e) {
-  // eslint-disable-next-line no-console
   console.warn('DBG dashboard import check failed', e);
 }
 
@@ -42,31 +39,39 @@ try {
  * @returns {React.ReactElement}
  */
 export default function LecturerDashboard() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useUser();
+  const [nowTs, setNowTs] = useState(() => Date.now());
   
   const [activeTab, setActiveTab] = useState('overview');
-  const [autoSelectedCourseId, setAutoSelectedCourseId] = useState(
-    location.state?.newestCourseId || location.state?.newCourseId || null
-  );
+  const autoSelectedCourseId = location.state?.newestCourseId || location.state?.newCourseId || null;
 
   // Fetch all dashboard data using repository pattern (hook handles real-time subscriptions)
   const { stats, recentSessions, sessionPerformance, loading, error, refresh } = useLecturerDashboard(
     user?.id
   );
 
-  // Clear auto-selection after processing
   useEffect(() => {
-    if (autoSelectedCourseId && location.state) {
-      // Clear the navigation state
+    const interval = setInterval(() => setNowTs(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeSessionsCount = recentSessions.filter((session) => {
+    if (!session?.expires_at) return false;
+    return new Date(session.expires_at).getTime() > nowTs;
+  }).length;
+
+  const averageAttendancePercent = Number(stats?.overallRate || 0);
+
+  // Clear navigation state after processing
+  useEffect(() => {
+    if (location.state) {
       window.history.replaceState({}, document.title, window.location.pathname);
-      setAutoSelectedCourseId(null);
     }
-  }, [autoSelectedCourseId, location.state]);
+  }, [location.state]);
 
   // Use useRealtimeClasses hook which will subscribe or fallback to polling on error
-  const { courses, loading: coursesLoading, subscriptionFailed } = useRealtimeClasses(user?.id);
+  const { courses, subscriptionFailed } = useRealtimeClasses(user?.id);
 
   if (!user) {
     return (
@@ -197,13 +202,13 @@ export default function LecturerDashboard() {
               <div>
                 <p className="text-xs text-zinc-400 uppercase font-semibold mb-1">Active Sessions</p>
                 <p className="text-2xl font-bold text-orange-500">
-                  {recentSessions.length}
+                  {activeSessionsCount}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-zinc-400 uppercase font-semibold mb-1">Average Attendance</p>
                 <p className="text-2xl font-bold text-emerald-500">
-                  {stats?.overallRate || 0}%
+                  {averageAttendancePercent}%
                 </p>
               </div>
               <hr className="border-zinc-700 my-4" />

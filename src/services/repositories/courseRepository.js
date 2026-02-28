@@ -29,6 +29,25 @@ export default class CourseRepository extends BaseRepository {
     return data || [];
   }
 
+  async findAvailableForStudent(studentId) {
+    const { data: classes, error: classError } = await this.client
+      .from('classes')
+      .select('id, lecturer_id, course_code, course_title, level, created_at, department, profiles:lecturer_id(full_name)')
+      .order('created_at', { ascending: false });
+
+    if (classError) throw classError;
+
+    const { data: enrollments, error: enrollmentError } = await this.client
+      .from('class_enrollments')
+      .select('class_id')
+      .eq('student_id', studentId);
+
+    if (enrollmentError) throw enrollmentError;
+
+    const enrolledClassIds = new Set((enrollments || []).map((item) => item.class_id));
+    return (classes || []).filter((klass) => !enrolledClassIds.has(klass.id));
+  }
+
   async create(payload) {
     const { data, error } = await this.client.from('classes').insert(payload).select('id, course_code, course_title, level, created_at, department').single();
     if (error) throw error;

@@ -8,25 +8,31 @@ export const useStudentCourses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const fetchCourses = async () => {
+    if (!user?.id) {
+      setCourses([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await repos.enrollmentRepository.findByStudent(user.id);
+      setCourses(data || []);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching courses via repository:", err);
+      setError(err?.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!user) return;
-
-    const fetchCourses = async () => {
-      try {
-        const data = await repos.enrollmentRepository.findByStudent(user.id);
-        setCourses(data || []);
-      } catch (err) {
-        console.error("Error fetching courses via repository:", err);
-        setError(err?.message || String(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCourses();
-  }, [user]);
+  }, [user?.id]);
 
-  return { courses, loading, error };
+  return { courses, loading, error, refresh: fetchCourses };
 };
 
 export const useStudentAttendance = () => {

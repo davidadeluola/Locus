@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle, MapPin } from 'lucide-react';
 
-export default function ActiveSession({ session, timeRemaining, endSession, formatTime }) {
+export default function ActiveSession({ session, timeRemaining, endSession, extendSession, regenerateSession, formatTime }) {
   if (!session) return null;
 
   return (
@@ -18,6 +18,22 @@ export default function ActiveSession({ session, timeRemaining, endSession, form
           <CheckCircle className="text-emerald-500" size={24} />
         </div>
         <h3 className="font-mono text-sm uppercase tracking-widest text-emerald-500">Session Active</h3>
+      </div>
+
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={regenerateSession}
+          className="flex-1 py-3 bg-zinc-700/20 text-zinc-300 border border-zinc-700/30 rounded-xl text-sm uppercase font-mono hover:bg-zinc-700/30 transition-all"
+        >
+          Regenerate Session
+        </button>
+
+        <button
+          onClick={endSession}
+          className="flex-1 py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-sm uppercase font-mono hover:bg-red-500/20 transition-all"
+        >
+          Terminate Session
+        </button>
       </div>
 
       <div className="mb-6 p-6 bg-black/40 rounded-xl border border-zinc-800">
@@ -44,12 +60,14 @@ export default function ActiveSession({ session, timeRemaining, endSession, form
         </div>
       </div>
 
-      <button
-        onClick={endSession}
-        className="w-full py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-sm uppercase font-mono hover:bg-red-500/20 transition-all"
-      >
-        Terminate Session
-      </button>
+      <div className="flex gap-3">
+        <button
+          onClick={() => extendSession?.(5)}
+          className="flex-1 py-3 bg-amber-700/10 text-amber-400 border border-amber-700/20 rounded-xl text-sm uppercase font-mono hover:bg-amber-700/20 transition-all"
+        >
+          +5 Minutes
+        </button>
+      </div>
     </div>
   );
 }

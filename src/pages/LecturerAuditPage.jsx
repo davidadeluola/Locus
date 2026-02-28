@@ -8,38 +8,17 @@ import { useUser } from "../hooks/useUser";
 import { formatDistance } from "../lib/utils/attendanceUtils";
 
 const LecturerAuditPage = () => {
+  const PAGE_SIZE = 10;
   const { user } = useUser();
   const [searchParams] = useSearchParams();
   const sessionFilter = searchParams.get("sessionId");
   const [auditLogs, setAuditLogs] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [recordsPage, setRecordsPage] = useState(1);
 
   useEffect(() => {
     if (!user?.id) return;
-
-    const fetchAuditLogs = async () => {
-      let query = supabase
-        .from("attendance_logs")
-        .select(
-          `
-            id,
-            session_id,
-            signed_at,
-            distance_meters,
-            profiles:student_id(full_name, matric_no),
-            sessions!inner(id, created_at, expires_at, lecturer_id, classes(course_code, course_title, course_department))
-          `
-        )
-        .eq("sessions.lecturer_id", user.id)
-        .order("signed_at", { ascending: false });
-
-      if (sessionFilter) {
-        query = query.eq("session_id", sessionFilter);
-      }
-
-      const { data } = await query;
-      setAuditLogs(data || []);
-    };
 
     const fetchSessions = async () => {
       const { data } = await supabase
@@ -55,13 +34,109 @@ const LecturerAuditPage = () => {
         .eq("lecturer_id", user.id)
         .order("created_at", { ascending: false });
 
-      setSessions(data || []);
+      const rows = data || [];
+      setSessions(rows);
+      return rows;
     };
 
-    fetchAuditLogs();
-    fetchSessions();
+    const fetchAuditLogs = async (sessionRows) => {
+      const sessionIds = (sessionRows || []).map((session) => session.id).filter(Boolean);
 
-    // Real-time subscription for attendance logs
+      if (!sessionIds.length) {
+        setAuditLogs([]);
+        return;
+      }
+
+      // Preferred source: persisted audit records written on session termination
+      let auditQuery = supabase
+        .from("attendance_audit")
+        .select("id, attendance_log_id, session_id, student_id, signed_at, distance_meters, created_at")
+        .in("session_id", sessionIds)
+        .order("signed_at", { ascending: false });
+
+      if (sessionFilter) {
+        auditQuery = auditQuery.eq("session_id", sessionFilter);
+      }
+
+      const { data: auditRows, error: auditError } = await auditQuery;
+
+      if (!auditError && auditRows && auditRows.length) {
+        const studentIds = Array.from(new Set(auditRows.map((row) => row.student_id).filter(Boolean)));
+        let profileMap = new Map();
+
+        if (studentIds.length) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, full_name, matric_no")
+            .in("id", studentIds);
+
+          profileMap = new Map((profiles || []).map((profile) => [profile.id, profile]));
+        }
+
+        const sessionMap = new Map((sessionRows || []).map((session) => [session.id, session]));
+        const normalized = auditRows.map((row) => {
+          const profile = profileMap.get(row.student_id) || null;
+          const session = sessionMap.get(row.session_id) || null;
+
+          return {
+            id: row.id,
+            session_id: row.session_id,
+            signed_at: row.signed_at,
+            distance_meters: row.distance_meters,
+            profiles: {
+              full_name: profile?.full_name || "",
+              matric_no: profile?.matric_no || "",
+            },
+            sessions: {
+              id: session?.id,
+              created_at: session?.created_at,
+              expires_at: session?.expires_at,
+              lecturer_id: session?.lecturer_id,
+              classes: {
+                course_code: session?.classes?.course_code || "",
+                course_title: session?.classes?.course_title || "",
+                course_department: session?.classes?.course_department || "",
+              },
+            },
+          };
+        });
+
+        setAuditLogs(normalized);
+        return;
+      }
+
+      // Fallback source: live attendance logs
+      let logsQuery = supabase
+        .from("attendance_logs")
+        .select(
+          `
+            id,
+            session_id,
+            signed_at,
+            distance_meters,
+            profiles:student_id(full_name, matric_no),
+            sessions!inner(id, created_at, expires_at, lecturer_id, classes(course_code, course_title, course_department))
+          `
+        )
+        .eq("sessions.lecturer_id", user.id)
+        .order("signed_at", { ascending: false });
+
+      if (sessionFilter) {
+        logsQuery = logsQuery.eq("session_id", sessionFilter);
+      }
+
+      const { data } = await logsQuery;
+      setAuditLogs(data || []);
+    };
+
+    const fetchAll = async () => {
+      const sessionRows = await fetchSessions();
+      await fetchAuditLogs(sessionRows || []);
+    };
+
+    fetchAll();
+
+    // Real-time subscription for persisted attendance audit
     const logsChannel = supabase
       .channel(`audit_logs_${user.id}`)
       .on(
@@ -69,10 +144,10 @@ const LecturerAuditPage = () => {
         {
           event: "INSERT",
           schema: "public",
-          table: "attendance_logs",
+          table: "attendance_audit",
         },
         () => {
-          fetchAuditLogs();
+          fetchAll();
         }
       )
       .subscribe();
@@ -89,7 +164,7 @@ const LecturerAuditPage = () => {
           filter: `lecturer_id=eq.${user.id}`,
         },
         () => {
-          fetchSessions();
+          fetchAll();
         }
       )
       .subscribe();
@@ -116,6 +191,26 @@ const LecturerAuditPage = () => {
     });
     return Array.from(map.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [sessions, auditLogs]);
+
+  const totalSummaryPages = Math.max(1, Math.ceil(groupedSessions.length / PAGE_SIZE));
+  const paginatedGroupedSessions = useMemo(() => {
+    const start = (summaryPage - 1) * PAGE_SIZE;
+    return groupedSessions.slice(start, start + PAGE_SIZE);
+  }, [groupedSessions, summaryPage]);
+
+  const totalRecordPages = Math.max(1, Math.ceil(auditLogs.length / PAGE_SIZE));
+  const paginatedAuditLogs = useMemo(() => {
+    const start = (recordsPage - 1) * PAGE_SIZE;
+    return auditLogs.slice(start, start + PAGE_SIZE);
+  }, [auditLogs, recordsPage]);
+
+  useEffect(() => {
+    if (summaryPage > totalSummaryPages) setSummaryPage(totalSummaryPages);
+  }, [summaryPage, totalSummaryPages]);
+
+  useEffect(() => {
+    if (recordsPage > totalRecordPages) setRecordsPage(totalRecordPages);
+  }, [recordsPage, totalRecordPages]);
 
   const exportSessionReport = (sessionId) => {
     const sessionLogs = auditLogs.filter((log) => log.session_id === sessionId);
@@ -249,13 +344,19 @@ const LecturerAuditPage = () => {
               <thead>
                 <tr className="border-b border-zinc-800">
                   <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">
-                    Date & Time
+                    S/N
                   </th>
                   <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">
-                    Course
+                    Course Title
+                  </th>
+                  <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">
+                    Course Code
                   </th>
                   <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">
                     Students Registered
+                  </th>
+                  <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">
+                    Date & Time
                   </th>
                   <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">
                     Download
@@ -263,17 +364,21 @@ const LecturerAuditPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {groupedSessions.map((session) => (
+                {paginatedGroupedSessions.map((session, index) => (
                   <tr key={session.session_id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-all">
                     <td className="py-3 px-4 font-mono text-xs text-zinc-300">
-                      {new Date(session.created_at).toLocaleString()}
+                      {(summaryPage - 1) * PAGE_SIZE + index + 1}
                     </td>
-                    <td className="py-3 px-4 text-sm">{session.course_code} — {session.course_title}</td>
+                    <td className="py-3 px-4 text-sm">{session.course_title}</td>
+                    <td className="py-3 px-4 font-mono text-xs text-zinc-300">{session.course_code}</td>
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-500/10 text-orange-500 rounded-lg font-mono text-xs border border-orange-500/20">
                         <Users size={12} />
                         {session.total}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 font-mono text-xs text-zinc-300">
+                      {new Date(session.created_at).toLocaleString()}
                     </td>
                     <td className="py-3 px-4">
                       <button
@@ -288,6 +393,26 @@ const LecturerAuditPage = () => {
                 ))}
               </tbody>
             </table>
+
+            {totalSummaryPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <button
+                  onClick={() => setSummaryPage((page) => Math.max(1, page - 1))}
+                  disabled={summaryPage === 1}
+                  className="px-3 py-1 text-xs font-mono border border-zinc-700 rounded disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <span className="text-xs font-mono text-zinc-500">Page {summaryPage} / {totalSummaryPages}</span>
+                <button
+                  onClick={() => setSummaryPage((page) => Math.min(totalSummaryPages, page + 1))}
+                  disabled={summaryPage === totalSummaryPages}
+                  className="px-3 py-1 text-xs font-mono border border-zinc-700 rounded disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -324,7 +449,7 @@ const LecturerAuditPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {auditLogs.map((log) => (
+                  {paginatedAuditLogs.map((log) => (
                     <tr key={log.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-all">
                       <td className="py-3 px-4 font-mono text-xs text-zinc-400">{new Date(log.signed_at).toLocaleString()}</td>
                       <td className="py-3 px-4 text-sm">{log.profiles?.full_name || "Unknown"}</td>
@@ -335,6 +460,26 @@ const LecturerAuditPage = () => {
                   ))}
                 </tbody>
               </table>
+
+              {totalRecordPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <button
+                    onClick={() => setRecordsPage((page) => Math.max(1, page - 1))}
+                    disabled={recordsPage === 1}
+                    className="px-3 py-1 text-xs font-mono border border-zinc-700 rounded disabled:opacity-40"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-xs font-mono text-zinc-500">Page {recordsPage} / {totalRecordPages}</span>
+                  <button
+                    onClick={() => setRecordsPage((page) => Math.min(totalRecordPages, page + 1))}
+                    disabled={recordsPage === totalRecordPages}
+                    className="px-3 py-1 text-xs font-mono border border-zinc-700 rounded disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

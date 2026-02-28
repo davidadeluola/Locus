@@ -199,7 +199,7 @@ export const IStatisticsRepository = {
    * @param {number} [expectedStudents] - Expected students count
    * @returns {Promise<import('../types').SessionPerformance>}
    */
-  getSessionPerformance: async (sessionId, expectedStudents = 50) => { throw new Error('Not implemented'); },
+  getSessionPerformance: async (sessionId, expectedStudents = 0) => { throw new Error('Not implemented'); },
 
   /**
    * Get student statistics

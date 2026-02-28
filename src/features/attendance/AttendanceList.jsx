@@ -13,6 +13,16 @@ const AttendanceList = ({ sessionId }) => {
   const { profile, user } = useAuthContext();
   const lecturerName = profile?.full_name || user?.email || '';
 
+  if (!effectiveSessionId) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-zinc-500 font-mono text-sm">No active session. Create a session to start tracking attendance.</div>
+        </div>
+      </div>
+    );
+  }
+
   const formatTime = (timestamp) => {
     if (!timestamp) return 'N/A';
     const date = new Date(timestamp);
@@ -23,14 +33,6 @@ const AttendanceList = ({ sessionId }) => {
     <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
       <div className="flex items-center justify-center py-12">
         <div className="text-zinc-500 font-mono text-sm">Loading attendance data...</div>
-      </div>
-    </div>
-  );
-
-  if (!effectiveSessionId) return (
-    <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
-      <div className="flex items-center justify-center py-12">
-        <div className="text-zinc-500 font-mono text-sm">No active session. Create or select a session to view attendance.</div>
       </div>
     </div>
   );

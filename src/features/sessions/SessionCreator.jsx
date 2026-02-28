@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Clock, QrCode, Timer } from "lucide-react";
-import { sessionRepository, courseRepository } from '../../services/repositories/index.js';
+import { sessionRepository, courseRepository, attendanceRepository, profileRepository } from '../../services/repositories/index.js';
 import { subscribeToTableChanges } from '../../services/realtimeSubscriptionManager.js';
 import notify from '../../services/notify.jsx';
+import { toast } from 'sonner';
 // Migrated: data access via repositories and realtime via subscription manager.
 import ActionButton from "../../components/ui/ActionButton";
 import SystemBadge from "../../components/ui/SystemBadge";
@@ -104,6 +105,97 @@ const SessionCreator = () => {
     }
   };
 
+  const regenerateSession = async () => {
+    if (!activeSession?.id) return;
+    setLoading(true);
+    try {
+      const currentExpiry = new Date(activeSession.expires_at || Date.now());
+      const baseTime = currentExpiry.getTime() > Date.now() ? currentExpiry : new Date();
+      const nextExpiry = new Date(baseTime.getTime() + 5 * 60 * 1000);
+
+      const updated = await sessionRepository.update(activeSession.id, {
+        otp_secret: generateOTP(),
+        expires_at: nextExpiry.toISOString(),
+      });
+      setActiveSession?.(updated || null);
+      toast.success('Session Regenerated', {
+        description: 'OTP refreshed and timer extended by 5 minutes.',
+      });
+    } catch (err) {
+      notify.error(err?.message || 'Failed to regenerate session');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const terminateSession = async () => {
+    if (!activeSession?.id) return;
+    setLoading(true);
+    try {
+      const logs = (await attendanceRepository.findBySession(activeSession.id)) || [];
+      const studentIds = Array.from(new Set(logs.map((log) => log.student_id).filter(Boolean)));
+
+      const profileRows = await Promise.all(
+        studentIds.map(async (studentId) => {
+          try {
+            const profile = await profileRepository.findById(studentId);
+            return [studentId, profile];
+          } catch {
+            return [studentId, null];
+          }
+        })
+      );
+      const profileMap = new Map(profileRows);
+
+      try {
+        await sessionRepository.finalizeSession(activeSession.id);
+      } catch {
+        // best-effort
+      }
+      await sessionRepository.update(activeSession.id, { expires_at: new Date().toISOString() });
+
+      try {
+        const ExcelMod = await import('exceljs');
+        const ExcelJS = ExcelMod.default || ExcelMod;
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Attendance Records');
+
+        worksheet.addRow(['S/N', 'Full Name', 'Matric No', 'Signed At', 'Distance (m)']);
+        logs.forEach((log, index) => {
+          const profile = profileMap.get(log.student_id) || null;
+          worksheet.addRow([
+            index + 1,
+            profile?.full_name || 'N/A',
+            profile?.matric_no || 'N/A',
+            log.signed_at || '',
+            log.distance_meters ?? '',
+          ]);
+        });
+
+        const courseCode = (classes.find((course) => course.id === activeSession.class_id)?.course_code || 'session');
+        const filename = `${courseCode}_${activeSession.id}_attendance.xlsx`;
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      } catch (exportError) {
+        console.warn('Failed to export attendance workbook:', exportError);
+      }
+
+      setActiveSession?.(null);
+      notify.info('Session terminated');
+    } catch (err) {
+      notify.error(err?.message || 'Failed to terminate session');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const selectedCourse = classes.find((item) => item.id === selectedClassId) || null;
 
   return (
@@ -139,6 +231,15 @@ const SessionCreator = () => {
             <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
               <span className="inline-flex items-center gap-2"><Timer size={12} />Countdown</span>
               <span className="text-orange-500">{formatted}</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+              <ActionButton onClick={regenerateSession} disabled={loading} variant="ghost" className="w-full">
+                {loading ? 'PROCESSING...' : 'REGENERATE SESSION'}
+              </ActionButton>
+              <ActionButton onClick={terminateSession} disabled={loading} variant="danger" className="w-full">
+                {loading ? 'PROCESSING...' : 'TERMINATE SESSION'}
+              </ActionButton>
             </div>
           </div>
         ) : (

@@ -11,15 +11,7 @@ export const usePasswordUpdate = () => {
     setLoading(true);
 
     try {
-      const { data, error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (updateError) {
-        setError(updateError.message);
-        return { data: null, error: updateError };
-      }
-
+      const data = await authRepository.updateUser({ password: newPassword });
       return { data, error: null };
     } catch (err) {
       const fallback = "Unable to update security cipher.";

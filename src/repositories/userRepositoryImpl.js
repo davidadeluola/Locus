@@ -6,14 +6,14 @@ export const UserRepository = {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('❌ Error fetching profile:', error);
       throw new Error(`Failed to fetch profile for user ${userId}`);
     }
 
-    return data;
+    return data || null;
   },
 
   async fetchUserWithProfile(userId) {

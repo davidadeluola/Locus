@@ -68,7 +68,19 @@ export function useLecturerDashboard(lecturerId) {
       if (sessionsData.length > 0) {
         const latestSession = sessionsData[0];
         const sessionId = latestSession.active_session_id || latestSession.id;
-        const expectedStudents = statsData?.totalStudents || 50;
+        let expectedStudents = 0;
+
+        if (latestSession?.class_id) {
+          try {
+            expectedStudents = await EnrollmentRepository.countStudentsByCourse(latestSession.class_id);
+          } catch (enrollCountError) {
+            console.warn('⚠️ [Lecturer] Could not count class enrollments for latest session:', enrollCountError);
+          }
+        }
+
+        if (!expectedStudents || expectedStudents < 0) {
+          expectedStudents = statsData?.totalStudents || 0;
+        }
 
         try {
           const performance = await StatisticsRepository.getSessionPerformance(

@@ -14,7 +14,7 @@ const authRepository = {
   },
 
   async signInWithOAuth(provider, options = {}) {
-    const { error } = await supabase.auth.signInWithOAuth({ provider }, options);
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options });
     if (error) throw error;
     return true;
   },

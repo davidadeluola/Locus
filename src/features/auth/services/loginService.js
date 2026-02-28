@@ -25,3 +25,44 @@ export const requestPasswordReset = async (email) => {
     redirectTo: `${window.location.origin}/login`,
   });
 };
+
+export const requestPasswordResetOtp = async (email) => {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  return supabase.auth.signInWithOtp({
+    email: normalizedEmail,
+    options: {
+      shouldCreateUser: false,
+    },
+  });
+};
+
+export const verifyPasswordResetOtpAndUpdate = async (email, otp, newPassword) => {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedOtp = String(otp || "").trim();
+
+  const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+    email: normalizedEmail,
+    token: normalizedOtp,
+    type: "email",
+  });
+
+  if (verifyError) {
+    return { data: null, error: verifyError };
+  }
+
+  const { data: updateData, error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (updateError) {
+    return { data: null, error: updateError };
+  }
+
+  return {
+    data: {
+      verifyData,
+      updateData,
+    },
+    error: null,
+  };
+};

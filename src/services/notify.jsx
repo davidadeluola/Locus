@@ -1,46 +1,48 @@
-import React from 'react';
-import { toast } from 'react-toastify';
-import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
-const COLORS = {
-  success: '#10B981',
-  error: '#F97316',
-  info: '#A1A1AA',
-};
+const DEDUPE_WINDOW_MS = 1200;
+const shownAt = new Map();
 
-function makeContent(type, message) {
-  const title = (
-    <div className="text-xs font-mono uppercase text-zinc-400">{type}</div>
-  );
+function canShow(type, message) {
+  const text = String(message || '').trim();
+  if (!text) return false;
+  const key = `${type}:${text}`;
+  const now = Date.now();
+  const last = shownAt.get(key) || 0;
+  if (now - last < DEDUPE_WINDOW_MS) return false;
+  shownAt.set(key, now);
+  return true;
+}
 
-  const body = <div className="text-sm text-white font-mono">{String(message)}</div>;
+function notifyOnce(type, message) {
+  const text = String(message || '').trim();
+  if (!canShow(type, text)) return;
 
-  const iconMap = {
-    success: <CheckCircle className="text-emerald-400" size={20} />,
-    error: <XCircle className="text-orange-400" size={20} />,
-    info: <AlertTriangle className="text-zinc-400" size={20} />,
+  const options = {
+    id: `${type}:${text}`,
+    duration: 2500,
   };
 
-  return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <div style={{ marginTop: 2 }}>{iconMap[type] || null}</div>
-      <div>
-        {title}
-        {body}
-      </div>
-    </div>
-  );
+  if (type === 'success') {
+    toast.success(text, options);
+    return;
+  }
+  if (type === 'error') {
+    toast.error(text, options);
+    return;
+  }
+  toast(text, options);
 }
 
 const notify = {
   success(message) {
-    toast.success(makeContent('success', message), { style: { borderLeft: `4px solid ${COLORS.success}` } });
+    notifyOnce('success', message);
   },
   error(message) {
-    toast.error(makeContent('error', message), { style: { borderLeft: `4px solid ${COLORS.error}` } });
+    notifyOnce('error', message);
   },
   info(message) {
-    toast.info(makeContent('info', message), { style: { borderLeft: `4px solid ${COLORS.info}` } });
+    notifyOnce('info', message);
   },
 };
 

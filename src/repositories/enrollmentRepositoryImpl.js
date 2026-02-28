@@ -9,7 +9,7 @@ const trySelectWithFallbacks = async (baseQueryBuilder) => {
     const { data, error } = await q;
     if (!error) return data || [];
     // fallthrough to next attempt
-  } catch (e) {
+  } catch {
     // continue to fallback
   }
 
@@ -20,14 +20,14 @@ const trySelectWithFallbacks = async (baseQueryBuilder) => {
       .eq('status', 'active');
     const { data: d2, error: e2 } = await q2;
     if (!e2) return d2 || [];
-  } catch (e) {
+  } catch {
     // continue
   }
 
-  // Final fallback: no status filter, use simple aliasing (profiles:student_id)
+  // Final fallback: no status filter, still force explicit FK join
   try {
     const { data: finalData, error: finalErr } = await baseQueryBuilder()
-      .select(`id, student_id, class_id, status, created_at, profiles:student_id(id, full_name, matric_no, email, department, level), classes!inner(id, course_code, course_title, lecturer_id)`)
+      .select(`id, student_id, class_id, status, created_at, profiles!student_id(id, full_name, matric_no, email, department, level), classes!inner(id, course_code, course_title, lecturer_id)`)
       .eq('class_id', baseQueryBuilder._classId || undefined);
     if (finalErr) throw finalErr;
     return finalData || [];
@@ -60,7 +60,7 @@ export const EnrollmentRepository = {
         .eq('class_id', courseId)
         .eq('status', 'active');
       if (!error) return count || 0;
-    } catch (e) {
+    } catch {
       // ignore and fallback
     }
 
@@ -74,8 +74,8 @@ export const EnrollmentRepository = {
         return 0;
       }
       return c2 || 0;
-    } catch (e) {
-      console.error('❌ Error counting enrollments (final):', e);
+    } catch (error) {
+      console.error('❌ Error counting enrollments (final):', error);
       return 0;
     }
   },
@@ -90,7 +90,7 @@ export const EnrollmentRepository = {
         .single();
       if (error) throw error;
       return data;
-    } catch (e) {
+    } catch {
       // try inserting without the status field if DB doesn't have it
       try {
         const { data: d2, error: e2 } = await supabase
