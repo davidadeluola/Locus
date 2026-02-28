@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { supabase } from "../api/supabase";
+import authRepository from '../services/repositories/authRepository.js';
+// Migrated to `authRepository` for centralized auth access.
 
 export const usePasswordUpdate = () => {
   const [loading, setLoading] = useState(false);

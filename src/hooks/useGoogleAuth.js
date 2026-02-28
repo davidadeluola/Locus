@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { supabase } from "../api/supabase";
+import authRepository from '../services/repositories/authRepository.js';
+// Migrated to use `authRepository`.
 
 export const useGoogleAuth = () => {
   const [loading, setLoading] = useState(false);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../api/supabase";
+import authRepository from '../../../services/repositories/authRepository.js';
+// TODO(MIGRATE): Replace direct sign-up calls with `authRepository` methods.
 import { useAuthStore } from "../../../store/authStore";
 import {
   buildProfilePayload,

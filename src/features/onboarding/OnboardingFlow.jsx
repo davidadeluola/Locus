@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../api/supabase';
+import repos from '../../services/repositories/index.js';
+// TODO(MIGRATE): Replace direct Supabase calls with appropriate repository calls (use `repos`).
 import { useAuthStore } from '../../store/authStore';
 
 const OnboardingFlow = () => {

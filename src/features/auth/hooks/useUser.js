@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../api/supabase";
+import { userRepository } from '../../services/repositories/index.js';
+// TODO(MIGRATE): Use `userRepository` or `authRepository` to fetch current user.
 
 export const useUser = () => {
   const [profile, setProfile] = useState(null);

@@ -1,4 +1,6 @@
 import { supabase } from "../../../api/supabase";
+import authRepository from '../../../services/repositories/authRepository.js';
+// TODO(MIGRATE): Move auth calls to `authRepository` so domain code uses repository interface.
 
 export const loginWithPassword = async (email, password) => {
   const normalizedEmail = String(email || "").trim().toLowerCase();

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { supabase } from "../api/supabase";
+import { attendanceRepository, sessionRepository } from '../services/repositories/index.js';
+import authRepository from '../services/repositories/authRepository.js';
+import notify from '../services/notify.jsx';
 import { calculateDistance } from "../lib/utils/attendanceUtils";
 
 const MAX_DISTANCE_METERS = 100;
@@ -34,27 +36,14 @@ export const useAttendance = () => {
     setSuccess(false);
 
     try {
-      // 1. Get current user
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      // 1. Get current user from auth repository
+      const sessionInfo = await authRepository.getSession();
+      const user = sessionInfo?.user;
+      if (!user) throw new Error('Authentication required');
 
-      if (userError || !user) {
-        throw new Error("Authentication required");
-      }
-
-      // 2. Fetch active session matching OTP
-      const { data: session, error: sessionError } = await supabase
-        .from("sessions")
-        .select("id, latitude, longitude, expires_at")
-        .eq("otp_secret", otpCode)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
-
-      if (sessionError || !session) {
-        throw new Error("Invalid or expired session code");
-      }
+      // 2. Fetch active session matching OTP via repository
+      const session = await sessionRepository.findActiveByOtp(otpCode);
+      if (!session) throw new Error('Invalid or expired session code');
 
       setDistancePayload({
         studentLocation,
@@ -81,30 +70,18 @@ export const useAttendance = () => {
       }
 
       // 5. Check if already signed in for this session
-      const { data: existingLog } = await supabase
-        .from("attendance_logs")
-        .select("id")
-        .eq("session_id", session.id)
-        .eq("student_id", user.id)
-        .maybeSingle();
-
-      if (existingLog) {
-        throw new Error("You have already signed in for this session");
+      const existingLogs = await attendanceRepository.findBySession(session.id);
+      if (existingLogs?.some(l => l.student_id === user.id)) {
+        throw new Error('You have already signed in for this session');
       }
 
-      // 6. Insert attendance log
-      const { error: insertError } = await supabase
-        .from("attendance_logs")
-        .insert({
-          session_id: session.id,
-          student_id: user.id,
-          distance_meters: Math.round(distance),
-          signed_at: new Date().toISOString(),
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
+      // 6. Insert attendance log via repository
+      await attendanceRepository.log({
+        session_id: session.id,
+        student_id: user.id,
+        distance_meters: Math.round(distance),
+        signed_at: new Date().toISOString(),
+      });
 
       setSuccess(true);
       setLoading(false);
@@ -114,7 +91,8 @@ export const useAttendance = () => {
         distance: Math.round(distance),
       };
     } catch (err) {
-      const errorMessage = err.message || "Failed to submit attendance";
+      const errorMessage = err.message || 'Failed to submit attendance';
+      notify.error(errorMessage);
       setError(errorMessage);
       setLoading(false);
 

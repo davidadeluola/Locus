@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Clock, QrCode, Timer } from "lucide-react";
-import { supabase } from "../../api/supabase";
+import { sessionRepository, courseRepository } from '../../services/repositories/index.js';
+import { subscribeToTableChanges } from '../../services/realtimeSubscriptionManager.js';
+import notify from '../../services/notify.jsx';
+// Migrated: data access via repositories and realtime via subscription manager.
 import ActionButton from "../../components/ui/ActionButton";
 import SystemBadge from "../../components/ui/SystemBadge";
 import { useAuthContext } from "../../context/AuthContext";
@@ -15,35 +18,30 @@ const SessionCreator = () => {
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     const fetchClasses = async () => {
-      const primary = await supabase
-        .from("classes")
-        .select("id, course_code, course_title, level")
-        .eq("lecturer_id", user.id)
-        .order("course_code", { ascending: true });
-
-      if (!primary.error) {
-        const loaded = primary.data || [];
-        setClasses(loaded);
-        setSelectedClassId((previous) => previous || loaded[0]?.id || "");
-        return;
+      try {
+        const data = await courseRepository.findByLecturer(user.id);
+        setClasses(data || []);
+        setSelectedClassId((previous) => previous || data?.[0]?.id || "");
+      } catch (err) {
+        notify.error(err?.message || 'Failed to load classes');
       }
-
-      const fallback = await supabase
-        .from("classes")
-        .select("id, course_code, course_title")
-        .eq("lecturer_id", user.id)
-        .order("course_code", { ascending: true });
-
-      const loaded = (fallback.data || []).map((item) => ({ ...item, level: null }));
-      setClasses(loaded);
-      setSelectedClassId((previous) => previous || loaded[0]?.id || "");
     };
 
     fetchClasses();
-  }, [user]);
+
+    const cleanup = subscribeToTableChanges({
+      channelName: `classes_${user.id}`,
+      table: 'classes',
+      event: '*',
+      filter: `lecturer_id=eq.${user.id}`,
+      onDataChange: fetchClasses,
+    });
+
+    return () => cleanup();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!activeSession?.expires_at) {
@@ -75,23 +73,32 @@ const SessionCreator = () => {
       const now = new Date();
       const expires = new Date(now.getTime() + durationMinutes * 60 * 1000);
 
-      const { data, error } = await supabase
-        .from("sessions")
-        .insert({
-          class_id: selectedClassId,
-          lecturer_id: user.id,
-          otp_secret: generateOTP(),
-          latitude: location.latitude,
-          longitude: location.longitude,
-          created_at: now.toISOString(),
-          expires_at: expires.toISOString(),
-        })
-        .select("id, class_id, lecturer_id, otp_secret, latitude, longitude, expires_at, created_at")
-        .single();
+      const payload = {
+        class_id: selectedClassId,
+        lecturer_id: user.id,
+        otp_secret: generateOTP(),
+        latitude: location.latitude,
+        longitude: location.longitude,
+        created_at: now.toISOString(),
+        expires_at: expires.toISOString(),
+      };
 
-      if (error) throw error;
-      setActiveSession(data || null);
+      const data = await sessionRepository.create(payload);
+      try {
+        setActiveSession?.(data || null);
+      } catch (e) {
+        // defensive: ensure context setter doesn't crash UI
+        // eslint-disable-next-line no-console
+        console.warn('Failed to set active session', e);
+      }
+      notify.success('Session created');
       return data || null;
+    } catch (err) {
+      // log and notify, but do not rethrow to avoid unhandled promise rejections
+      // eslint-disable-next-line no-console
+      console.error('Session creation failed', err);
+      notify.error(err?.message || 'Failed to create session');
+      return null;
     } finally {
       setLoading(false);
     }
