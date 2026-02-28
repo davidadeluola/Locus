@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Users } from "lucide-react";
-import { supabase } from "../api/supabase";
+import repos from '../services/repositories/index.js';
+import { subscribeToTableChanges } from '../services/realtimeSubscriptionManager';
+// Use repository interfaces to centralize data access (no direct supabase here)
 import { useUser } from "../hooks/useUser";
 
 const LecturerStudentsPage = () => {
@@ -8,27 +10,30 @@ const LecturerStudentsPage = () => {
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
+    if (!user?.id) return;
     const fetchStudents = async () => {
-      if (!user?.id) return;
-      const { data } = await supabase
-        .from("class_enrollments")
-        .select(
-          `
-            id,
-            class_id,
-            student_id,
-            created_at,
-            classes!inner(id, course_code, course_title, lecturer_id),
-            profiles:student_id(id, full_name, matric_no, email, department, level)
-          `
-        )
-        .eq("classes.lecturer_id", user.id)
-        .order("created_at", { ascending: false });
-
-      setStudents(data || []);
+      try {
+        const data = await repos.enrollmentRepository.findByLecturer(user.id);
+        setStudents(data || []);
+      } catch (err) {
+        console.error('❌ Error fetching enrollments via repository:', err);
+      }
     };
 
     fetchStudents();
+
+    // Real-time subscription via central manager to watch class_enrollments
+    const cleanup = subscribeToTableChanges({
+      channelName: `student_enrollments_${user.id}`,
+      table: 'class_enrollments',
+      event: '*',
+      onDataChange: fetchStudents,
+      debounceMs: 500,
+    });
+
+    return () => {
+      try { cleanup(); } catch (e) { /* ignore */ }
+    };
   }, [user?.id]);
 
   const uniqueStudents = useMemo(() => {

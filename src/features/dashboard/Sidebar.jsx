@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useUser } from "../../hooks/useUser";
 import { useNavigate, useLocation } from "react-router-dom";
+import repos from '../../services/repositories/index.js';
+import { subscribeToTableChanges } from '../../services/realtimeSubscriptionManager.js';
+// Sidebar now uses repository methods for data access (no direct Supabase calls)
 import {
   LayoutDashboard,
+
   UserCheck,
   BookOpen,
   Settings,
@@ -14,9 +18,85 @@ import {
 } from "lucide-react";
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
-  const { profile, loading, logout } = useUser();
+  const { user, profile, loading, logout } = useUser();
+  const [courses, setCourses] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
+  const [schoolName, setSchoolName] = useState("");
+
+  // Fetch school name based on school_id
+  useEffect(() => {
+    if (!profile?.school_id) return;
+    const fetchSchool = async () => {
+      try {
+        const school = await repos.schoolRepository.findById(profile.school_id);
+        setSchoolName(school?.name || "");
+      } catch (err) {
+        console.error("❌ Error fetching school via repository:", err);
+      }
+    };
+
+    fetchSchool();
+  }, [profile?.school_id]);
+
+  // If lecturer, fetch their courses and keep counts updated in realtime
+  useEffect(() => {
+    if (!user?.id || profile?.role !== 'lecturer') return;
+
+    let mounted = true;
+
+    const fetchCourses = async () => {
+      try {
+        const data = await repos.courseRepository.findByLecturer(user.id);
+        if (!mounted) return;
+        setCourses(data || []);
+      } catch (e) {
+        console.error('❌ Error fetching lecturer courses for sidebar:', e);
+      }
+    };
+
+    fetchCourses();
+
+    // Setup safe, filtered subscriptions to avoid channel errors caused by
+    // subscribing to entire tables when RLS prevents unrestricted access.
+    const cleanups = [];
+
+    // Always subscribe to classes for this lecturer
+    cleanups.push(
+      subscribeToTableChanges({
+        channelName: `sidebar_classes_${user.id}`,
+        table: 'classes',
+        event: '*',
+        filter: `lecturer_id=eq.${user.id}`,
+        onDataChange: fetchCourses,
+      })
+    );
+
+    // Subscribe to enrollments per-course (filtered). This keeps channels narrow
+    try {
+      const courseIds = (courses || []).map((c) => c.id).filter(Boolean);
+      if (courseIds.length > 0) {
+        courseIds.forEach((cid, idx) => {
+          cleanups.push(
+            subscribeToTableChanges({
+              channelName: `sidebar_enroll_${cid}_${idx}`,
+              table: 'class_enrollments',
+              event: '*',
+              filter: `class_id=eq.${cid}`,
+              onDataChange: fetchCourses,
+            })
+          );
+        });
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not subscribe to per-course enrollments:', e);
+    }
+
+    return () => {
+      mounted = false;
+      cleanups.forEach(c => { try { c(); } catch (_) {} });
+    };
+  }, [user?.id, profile?.role]);
 
   if (loading)
     return (
@@ -92,7 +172,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
               LOCUS<span className="text-orange-500">.</span>
             </h1>
             <p className="text-[9px] text-zinc-600 uppercase font-mono tracking-widest mt-1">
-              Lagos State Univ. Science & Tech
+              {schoolName || "Loading..."}
             </p>
           </>
         ) : (
@@ -127,6 +207,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
           );
         })}
       </nav>
+
+        {/* Lecturer: (Course rooms moved to lecturer dashboard) */}
 
       {/* User Footer */}
       <div className="p-4 border-t border-zinc-900 bg-black/20">

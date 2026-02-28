@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { supabase } from "../api/supabase";
+import authRepository from '../services/repositories/authRepository.js';
+import { profileRepository, sessionRepository } from '../services/repositories/index.js';
 
+// AuthContext: lightweight provider that uses repository interfaces only
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -10,54 +12,64 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-    setProfile(data || null);
-    return data || null;
+    try {
+      // attempt common repository lookups (by id or by user_id)
+      let next = await profileRepository.findById(userId);
+      if (!next) next = await profileRepository.findByUserId(userId);
+      setProfile(next || null);
+      return next || null;
+    } catch (e) {
+      setProfile(null);
+      return null;
+    }
   };
 
   const fetchActiveSession = async (userId) => {
-    const nowIso = new Date().toISOString();
-    const { data } = await supabase
-      .from("sessions")
-      .select("id, class_id, lecturer_id, otp_secret, latitude, longitude, expires_at, created_at")
-      .eq("lecturer_id", userId)
-      .gt("expires_at", nowIso)
-      .order("expires_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    setActiveSession(data || null);
+    try {
+      const session = await sessionRepository.findActiveByLecturer(userId);
+      setActiveSession(session || null);
+      return session || null;
+    } catch (e) {
+      setActiveSession(null);
+      return null;
+    }
   };
 
   useEffect(() => {
     let mounted = true;
+    let unsubscribeAuth = null;
 
     const bootstrap = async () => {
       setLoading(true);
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const session = await authRepository.getSession();
+        if (!mounted) return;
+        if (!session?.user) {
+          setUser(null);
+          setProfile(null);
+          setActiveSession(null);
+          setLoading(false);
+          return;
+        }
 
-      if (!mounted) return;
-      if (!session?.user) {
+        setUser(session.user);
+        const nextProfile = await fetchProfile(session.user.id);
+        if (nextProfile?.role === 'lecturer') {
+          await fetchActiveSession(session.user.id);
+        }
+      } catch (e) {
         setUser(null);
         setProfile(null);
         setActiveSession(null);
-        setLoading(false);
-        return;
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      setUser(session.user);
-      const nextProfile = await fetchProfile(session.user.id);
-      if (nextProfile?.role === "lecturer") {
-        await fetchActiveSession(session.user.id);
-      }
-      if (mounted) setLoading(false);
     };
 
     bootstrap();
 
-    const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // subscribe to auth state changes via repository wrapper
+    unsubscribeAuth = authRepository.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
       if (!session?.user) {
         setUser(null);
@@ -69,7 +81,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(session.user);
       const nextProfile = await fetchProfile(session.user.id);
-      if (nextProfile?.role === "lecturer") {
+      if (nextProfile?.role === 'lecturer') {
         await fetchActiveSession(session.user.id);
       } else {
         setActiveSession(null);
@@ -79,15 +91,42 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       mounted = false;
-      data.subscription.unsubscribe();
+      try {
+        unsubscribeAuth?.();
+      } catch (_) {
+        // ignore
+      }
     };
   }, []);
 
+  // Finalize sessions automatically when activeSession expires
+  useEffect(() => {
+    if (!activeSession?.id || !activeSession?.expires_at) return undefined;
+    const expiresAt = new Date(activeSession.expires_at).getTime();
+    const now = Date.now();
+    const delay = Math.max(0, expiresAt - now);
+    const timer = setTimeout(async () => {
+      try {
+        await sessionRepository.finalizeSession(activeSession.id);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to finalize session on expiry', e);
+      } finally {
+        setActiveSession(null);
+      }
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [activeSession?.id, activeSession?.expires_at]);
+
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setActiveSession(null);
+    try {
+      await authRepository.signOut();
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setActiveSession(null);
+    }
   };
 
   const value = useMemo(
@@ -101,7 +140,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuthContext must be used within AuthProvider");
+    throw new Error('useAuthContext must be used within AuthProvider');
   }
   return context;
 };

@@ -1,9 +1,47 @@
 import React from "react";
 import { BookOpen, Download, FileText, Video } from "lucide-react";
 import { useStudentCourses } from "../hooks/useDashboardData";
+import { useUser } from "../hooks/useUser";
+import repos from "../services/repositories/index.js";
+import notify from "../services/notify.jsx";
 
 const StudentResourcesPage = () => {
-  const { courses, loading } = useStudentCourses();
+  const { user } = useUser();
+  const { courses, loading, refresh } = useStudentCourses();
+  const [availableClasses, setAvailableClasses] = React.useState([]);
+  const [registeringId, setRegisteringId] = React.useState("");
+  const [loadingClasses, setLoadingClasses] = React.useState(true);
+
+  const fetchAvailableClasses = React.useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingClasses(true);
+    try {
+      const rows = await repos.courseRepository.findAvailableForStudent(user.id);
+      setAvailableClasses(rows || []);
+    } catch (err) {
+      console.error("Error fetching available classes:", err);
+    } finally {
+      setLoadingClasses(false);
+    }
+  }, [user?.id]);
+
+  React.useEffect(() => {
+    fetchAvailableClasses();
+  }, [fetchAvailableClasses]);
+
+  const registerClass = async (classId) => {
+    if (!user?.id || !classId) return;
+    setRegisteringId(classId);
+    try {
+      await repos.enrollmentRepository.create(user.id, classId);
+      notify.success("Class registered");
+      await Promise.all([refresh?.(), fetchAvailableClasses()]);
+    } catch (err) {
+      notify.error(err?.message || "Failed to register class");
+    } finally {
+      setRegisteringId("");
+    }
+  };
 
   if (loading) {
     return (
@@ -27,6 +65,36 @@ const StudentResourcesPage = () => {
       </div>
 
       {/* Courses */}
+      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+        <h2 className="text-sm font-mono uppercase tracking-widest text-zinc-400 mb-4">Available Classes</h2>
+
+        {loadingClasses ? (
+          <p className="text-zinc-500 font-mono text-sm">Loading available classes...</p>
+        ) : availableClasses.length === 0 ? (
+          <p className="text-zinc-500 font-mono text-sm">No new classes available to register.</p>
+        ) : (
+          <div className="space-y-3">
+            {availableClasses.map((klass) => (
+              <div key={klass.id} className="flex items-center justify-between gap-3 p-3 bg-black/40 rounded-lg border border-zinc-800">
+                <div>
+                  <p className="font-mono text-xs text-orange-500 uppercase tracking-widest">{klass.course_code}</p>
+                  <p className="text-sm font-semibold text-zinc-100">{klass.course_title}</p>
+                  <p className="text-xs text-zinc-500 font-mono">Lecturer: {klass.profiles?.full_name || "N/A"}</p>
+                </div>
+
+                <button
+                  onClick={() => registerClass(klass.id)}
+                  disabled={registeringId === klass.id}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-mono uppercase tracking-widest disabled:opacity-50"
+                >
+                  {registeringId === klass.id ? "Registering..." : "Register"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {courses.length === 0 ? (
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl text-center py-12">
           <BookOpen className="mx-auto mb-4 text-zinc-700" size={48} />

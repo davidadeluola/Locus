@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Mail } from "lucide-react";
 import { supabase } from "../../api/supabase";
+import authRepository from '../../services/repositories/authRepository.js';
+// TODO(MIGRATE): Replace direct password-reset Supabase calls with `authRepository`.
 
 const ResetRequest = () => {
   const [email, setEmail] = useState("");
