@@ -27,6 +27,14 @@ const AttendanceList = ({ sessionId }) => {
     </div>
   );
 
+  if (!effectiveSessionId) return (
+    <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+      <div className="flex items-center justify-center py-12">
+        <div className="text-zinc-500 font-mono text-sm">No active session. Create or select a session to view attendance.</div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <SessionInfoCard sessionInfo={sessionInfo} enrolledCount={enrolledStudents.length} onExport={exportSessionCsv} lecturerName={lecturerName} />

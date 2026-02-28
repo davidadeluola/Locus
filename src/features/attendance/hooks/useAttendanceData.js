@@ -115,6 +115,17 @@ export default function useAttendanceData(sessionId) {
     }
   }, [sessionId, cacheProfiles, getProfile, fetchProfileDirectly, calculateStats, fetchSessionInfo]);
 
+  // If there's no sessionId, ensure we show an empty state instead of a perpetual loader
+  useEffect(() => {
+    if (!sessionId) {
+      setAttendanceRecords([]);
+      setSessionInfo(null);
+      setEnrolledStudents([]);
+      setStats({ total: 0, avgDistance: 0 });
+      setLoading(false);
+    }
+  }, [sessionId]);
+
   useEffect(() => {
     if (!sessionId) return;
     let mounted = true;
