@@ -54,7 +54,7 @@ const Process = () => {
     >
       {/* LEFT/TOP: The "Live Feed" Visualizer (Orange) */}
       <motion.div
-        className="w-full flex md:w-1/2 bg-orange-600 relative border-b md:border-b-0 md:border-r border-zinc-900 items-center justify-center py-16 sm:py-20 md:py-0"
+        className="w-full md:flex md:w-1/2 bg-orange-600 hidden relative border-b md:border-b-0 md:border-r border-zinc-900 items-center justify-center py-16 sm:py-20 md:py-0"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
