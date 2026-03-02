@@ -25,12 +25,17 @@ npm run keepalive:cron
 
 Environment variables (optional overrides):
 
-- `SUPABASE_URL` (or `VITE_SUPABASE_URL`)
+- `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_ANON_KEY`
 - `KEEPALIVE_CRON` (default: `0 3 * * *`)
 - `KEEPALIVE_PING_INTERVAL_SECONDS` (default: `10`)
 - `KEEPALIVE_RUN_WINDOW_SECONDS` (default: `60`)
 - `KEEPALIVE_TABLE` (default: `classes`)
+
+Security note for Vercel:
+
+- Only variables prefixed with `VITE_` are exposed to the browser bundle.
+- Keep secrets (service role keys, API keys, tokens) in non-`VITE_` env vars.
 
 Example for one daily minute of pings every 10 seconds:
 

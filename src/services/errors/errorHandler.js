@@ -15,7 +15,7 @@ export function handleError(err, { capture = () => {} } = {}) {
   }
 
   // Log to console in development
-  if (process.env.NODE_ENV !== 'production') {
+  if (!import.meta.env.PROD) {
     // eslint-disable-next-line no-console
     console.error('[AppError]', out);
   }

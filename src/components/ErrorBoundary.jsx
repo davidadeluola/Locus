@@ -13,26 +13,25 @@ export default class ErrorBoundary extends React.Component {
   componentDidCatch(error, info) {
     // Log safely and call optional callback
     try {
-      // eslint-disable-next-line no-console
       console.error('ErrorBoundary caught', error, info);
-    } catch (e) {
+    } catch {
       // ignore logging failures
     }
 
     try {
       if (typeof this.props.onError === 'function') this.props.onError(error, info);
-    } catch (e) {
+    } catch {
       // ignore
     }
 
     // Capture owner stack in dev builds if available
     try {
-      if (process.env.NODE_ENV !== 'production' && typeof React.captureOwnerStack === 'function') {
+      if (!import.meta.env.PROD && typeof React.captureOwnerStack === 'function') {
         // captureOwnerStack may throw in some builds; guard it
         const ownerStack = React.captureOwnerStack();
         this.setState({ ownerStack });
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
 
