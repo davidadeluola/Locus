@@ -40,30 +40,3 @@ class CacheManager {
 
 const cacheManager = new CacheManager();
 export default cacheManager;
-// Simple in-memory cache with TTL
-class CacheManager {
-  constructor() {
-    this.store = new Map();
-  }
-
-  set(key, value, ttlMs = 0) {
-    const expiresAt = ttlMs > 0 ? Date.now() + ttlMs : null;
-    this.store.set(key, { value, expiresAt });
-  }
-
-  get(key) {
-    const entry = this.store.get(key);
-    if (!entry) return null;
-    if (entry.expiresAt && Date.now() > entry.expiresAt) {
-      this.store.delete(key);
-      return null;
-    }
-    return entry.value;
-  }
-
-  invalidate(key) {
-    this.store.delete(key);
-  }
-}
-
-export default new CacheManager();

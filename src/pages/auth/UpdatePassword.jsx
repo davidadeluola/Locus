@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Fingerprint, LockKeyhole, ShieldCheck } from "lucide-react";
 import PasswordInput from "../../features/auth/components/PasswordInput";
 import { usePasswordUpdate } from "../../hooks/usePasswordUpdate";
+import { validateNewPassword } from '../../lib/schemas/authSchemas';
 
 const MotionPanel = motion.div;
 
@@ -34,8 +35,9 @@ const UpdatePassword = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setLocalError("Security cipher must be at least 8 characters.");
+    const passwordValidation = validateNewPassword(newPassword);
+    if (!passwordValidation.valid) {
+      setLocalError(passwordValidation.error);
       return;
     }
 

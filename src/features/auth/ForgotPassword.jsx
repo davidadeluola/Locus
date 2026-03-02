@@ -1,6 +1,23 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { requestPasswordResetOtp, verifyPasswordResetOtpAndUpdate } from "./services/loginService";
+import {
+  requestPasswordResetOtp,
+  verifyPasswordResetOtpAndUpdate,
+} from "./services/loginService";
+import {
+  consumeRateLimit,
+  resetRateLimit,
+} from "../../lib/security/rateLimiter";
+import {
+  normalizeEmail,
+  validateResetEmail,
+  validateResetOtpAndPassword,
+} from "../../lib/schemas/authSchemas";
+
+const FORGOT_SEND_WINDOW_MS = 15 * 60 * 1000;
+const FORGOT_SEND_MAX_ATTEMPTS = 10;
+const FORGOT_VERIFY_WINDOW_MS = 15 * 60 * 1000;
+const FORGOT_VERIFY_MAX_ATTEMPTS = 10;
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -16,6 +33,31 @@ const ForgotPassword = () => {
     event.preventDefault();
     setError("");
     setMessage("");
+
+    const emailValidation = validateResetEmail(email);
+    if (!emailValidation.valid) {
+      setError(emailValidation.error);
+      return;
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const rateKey = `forgot-send:${normalizedEmail}`;
+    const rateCheck = consumeRateLimit(rateKey, {
+      maxAttempts: FORGOT_SEND_MAX_ATTEMPTS,
+      windowMs: FORGOT_SEND_WINDOW_MS,
+    });
+
+    if (!rateCheck.allowed) {
+      const waitMinutes = Math.max(
+        1,
+        Math.ceil(rateCheck.retryAfterSeconds / 60)
+      );
+      setError(
+        `Too many OTP requests. Try again in about ${waitMinutes} minute(s).`
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -26,8 +68,10 @@ const ForgotPassword = () => {
         return;
       }
       setOtpSent(true);
-      setMessage("If this email has a password account, a 6-digit OTP has been sent. Check inbox and spam.");
-    } catch {
+      setMessage(
+        "If this email has a password account, a 6-digit OTP has been sent. Check inbox and spam."
+      );
+    } catch (err) {
       setError("Unable to send OTP right now.");
     } finally {
       setLoading(false);
@@ -39,25 +83,49 @@ const ForgotPassword = () => {
     setError("");
     setMessage("");
 
-    if (String(otp).trim().length !== 6) {
-      setError("Enter the 6-digit OTP sent to your email.");
+    const payloadValidation = validateResetOtpAndPassword(
+      email,
+      otp,
+      newPassword
+    );
+    if (!payloadValidation.valid) {
+      setError(payloadValidation.error);
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters.");
+    const normalizedEmail = normalizeEmail(email);
+    const verifyRateKey = `forgot-verify:${normalizedEmail}`;
+    const verifyRateCheck = consumeRateLimit(verifyRateKey, {
+      maxAttempts: FORGOT_VERIFY_MAX_ATTEMPTS,
+      windowMs: FORGOT_VERIFY_WINDOW_MS,
+    });
+
+    if (!verifyRateCheck.allowed) {
+      const waitMinutes = Math.max(
+        1,
+        Math.ceil(verifyRateCheck.retryAfterSeconds / 60)
+      );
+      setError(
+        `Too many reset attempts. Try again in about ${waitMinutes} minute(s).`
+      );
       return;
     }
 
     setLoading(true);
 
     try {
-      const { error: resetError } = await verifyPasswordResetOtpAndUpdate(email, otp, newPassword);
+      const { error: resetError } = await verifyPasswordResetOtpAndUpdate(
+        email,
+        otp,
+        newPassword
+      );
       if (resetError) {
         console.error("OTP verify/reset error:", resetError);
         setError(resetError.message);
         return;
       }
+
+      resetRateLimit(verifyRateKey);
 
       navigate("/login", {
         replace: true,
@@ -65,8 +133,9 @@ const ForgotPassword = () => {
           message: "Password reset successful. Log in with your new password.",
         },
       });
-    } catch {
+    } catch (err) {
       setError("Unable to verify OTP or update password right now.");
+      throw new Error(err);
     } finally {
       setLoading(false);
     }
@@ -74,13 +143,19 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#09090b] px-4">
-      <form onSubmit={otpSent ? handleVerifyAndReset : handleSendOtp} className="w-full max-w-md bg-[#18181b] border border-zinc-800 rounded-2xl p-8 space-y-5">
+      <form
+        onSubmit={otpSent ? handleVerifyAndReset : handleSendOtp}
+        className="w-full max-w-md bg-[#18181b] border border-zinc-800 rounded-2xl p-8 space-y-5"
+      >
         <h2 className="text-2xl font-bold text-white">Reset Password</h2>
         <p className="text-zinc-400 text-sm">
-          {otpSent ? "Enter OTP and your new password." : "Enter your email to receive a reset OTP."}
+          {otpSent
+            ? "Enter OTP and your new password."
+            : "Enter your email to receive a reset OTP."}
         </p>
         <p className="text-zinc-500 text-xs">
-          If you signed up with Google OAuth, use Google login instead of password reset.
+          If you signed up with Google OAuth, use Google login instead of
+          password reset.
         </p>
 
         {error && <div className="text-red-400 text-xs">{error}</div>}
@@ -101,7 +176,9 @@ const ForgotPassword = () => {
             <input
               type="text"
               value={otp}
-              onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(event) =>
+                setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
+              }
               required
               maxLength={6}
               className="w-full px-4 py-3 bg-[#09090b] border border-zinc-800 rounded-xl text-zinc-100 focus:outline-none focus:border-[#FF4D00]"
@@ -125,7 +202,11 @@ const ForgotPassword = () => {
           disabled={loading}
           className="w-full py-3 bg-[#FF4D00] text-white rounded-xl font-bold disabled:opacity-50"
         >
-          {loading ? "PROCESSING..." : otpSent ? "VERIFY OTP & RESET" : "SEND OTP"}
+          {loading
+            ? "PROCESSING..."
+            : otpSent
+            ? "VERIFY OTP & RESET"
+            : "SEND OTP"}
         </button>
 
         <button

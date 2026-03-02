@@ -1,3 +1,5 @@
+import { emailRepository } from '../../../services/repositories/index.js';
+
 export const fetchSchools = async (supabaseClient) => {
   const { data, error } = await supabaseClient
     .from("schools")
@@ -44,6 +46,10 @@ export const initiateSignup = async (supabaseClient, email, password, redirectUr
 
   if (error) {
     throw error;
+  }
+
+  if (!data?.session && emailRepository.isEnabled()) {
+    await emailRepository.requestSignupOtpEmail({ to: normalizedEmail });
   }
 
   return { data, normalizedEmail };

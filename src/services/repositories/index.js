@@ -5,6 +5,7 @@ import EnrollmentRepository from './enrollmentRepository.js';
 import ProfileRepository from './profileRepository.js';
 import UserRepository from './userRepository.js';
 import SchoolRepository from './schoolRepository.js';
+import emailRepository from './emailRepository.js';
 import { supabase } from '../../api/supabase.js';
 
 // Export singleton repository instances wired to the shared Supabase client.
@@ -15,6 +16,7 @@ export const enrollmentRepository = new EnrollmentRepository({ supabaseClient: s
 export const profileRepository = new ProfileRepository({ supabaseClient: supabase });
 export const userRepository = new UserRepository({ supabaseClient: supabase });
 export const schoolRepository = new SchoolRepository({ supabaseClient: supabase });
+export { emailRepository };
 
 export default {
   courseRepository,
@@ -24,4 +26,5 @@ export default {
   profileRepository,
   userRepository,
   schoolRepository,
+  emailRepository,
 };
