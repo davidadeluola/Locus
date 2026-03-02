@@ -1,4 +1,4 @@
-import { FileSpreadsheet, MapPin, QrCode, Zap } from "lucide-react";
+import { FileSpreadsheet, KeyRound, MapPin, Zap } from "lucide-react";
 
 const steps = [
     {
@@ -8,9 +8,9 @@ const steps = [
       tag: "STEP 01"
     },
     {
-      title: "Dynamic QR Generation",
-      description: "A rotating TOTP-based QR code is displayed. This code expires every 30 seconds to prevent photo-sharing or proxy check-ins.",
-      icon: <QrCode className="text-orange-600" size={24} />,
+      title: "Dynamic OTP Generation",
+      description: "A rotating TOTP-based OTP code is displayed as a masked six-character code. It expires every 600 seconds to prevent proxy check-ins.",
+      icon: <KeyRound className="text-orange-600" size={24} />,
       tag: "STEP 02"
     },
     {

@@ -56,21 +56,3 @@ const storage = {
 };
 
 export default storage;
-// Abstraction over localStorage/sessionStorage
-const StorageManager = {
-  set(key, value, { session = false } = {}) {
-    const serialized = JSON.stringify(value);
-    if (session) sessionStorage.setItem(key, serialized);
-    else localStorage.setItem(key, serialized);
-  },
-  get(key, { session = false } = {}) {
-    const raw = session ? sessionStorage.getItem(key) : localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  },
-  remove(key, { session = false } = {}) {
-    if (session) sessionStorage.removeItem(key);
-    else localStorage.removeItem(key);
-  },
-};
-
-export default StorageManager;

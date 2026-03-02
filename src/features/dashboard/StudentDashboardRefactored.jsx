@@ -12,13 +12,9 @@
 import React from 'react';
 import { useAuthContext } from '../../context/AuthContext';
 import { useStudentDashboard } from '../../hooks/useDashboardRepository';
-import {
-  StudentStatsGrid,
-  AttendanceTrendChart,
-  EnrolledCoursesList,
-  AttendanceStatusCard,
-} from '../dashboard/StudentDashboardComponents';
+import { LayoutDashboard } from 'lucide-react';
 import AttendanceVerification from '../attendance/AttendanceVerification';
+import RecentCheckIns from './RecentCheckIns';
 
 /**
  * @returns {React.ReactElement}
@@ -27,7 +23,7 @@ export default function StudentDashboard() {
   const { user } = useAuthContext();
   
   // Hook handles data fetching AND real-time subscriptions
-  const { stats, courses, trendData, loading, error, refresh } = useStudentDashboard(user?.id);
+  const { attendance, loading, error, refresh } = useStudentDashboard(user?.id);
 
   if (!user) {
     return (
@@ -53,63 +49,37 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8 pb-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
-            Welcome back, {user.email?.split('@')[0]}
-          </h1>
-          <p className="text-zinc-500 text-sm">
+          <h4 className="mb-1 flex items-center gap-3 text-2xl font-bold text-white sm:text-3xl">
+              <LayoutDashboard size={24} className="text-orange-600" />
+              <span>My Terminal</span>
+          </h4>
+          <p className="text-zinc-500 font-mono text-sm">
             Track your attendance and manage your courses
           </p>
         </div>
         <button
           onClick={refresh}
           disabled={loading}
-          className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-600/50 rounded-lg text-sm font-medium transition-colors"
+          className="w-full sm:w-auto px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-600/50 rounded-lg text-sm font-medium transition-colors"
         >
           {loading ? 'Syncing...' : 'Refresh'}
         </button>
       </div>
 
       {/* Attendance Portal Section */}
-      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+      <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-6 rounded-2xl">
         <h2 className="text-lg font-semibold mb-4 text-white">Mark Attendance</h2>
         <AttendanceVerification />
       </div>
 
-      {/* Quick Stats Grid */}
-      <StudentStatsGrid stats={stats} />
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Content - Trends and Courses */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Attendance Trend Chart */}
-          <AttendanceTrendChart data={trendData} loading={loading} />
-
-          {/* Enrolled Courses Section */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
-            <h3 className="font-mono text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-              <span className="text-blue-500">📚</span>
-              Enrolled Courses
-            </h3>
-            <EnrolledCoursesList courses={courses} loading={loading} />
-          </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="lg:col-span-1">
-          <AttendanceStatusCard
-            attendanceRate={stats?.attendanceRate || 0}
-            targetRate={95}
-          />
-        </div>
-      </div>
+      <RecentCheckIns attendance={attendance} loading={loading} />
 
       {/* Bottom Information Section */}
-      <div className="bg-gradient-to-r from-orange-900/20 to-orange-900/10 border border-orange-800/30 p-6 rounded-2xl">
+      <div className="bg-linear-to-r from-orange-900/20 to-orange-900/10 border border-orange-800/30 p-4 sm:p-6 rounded-2xl">
         <h3 className="font-semibold text-white mb-2">📌 Important Notes</h3>
         <ul className="text-sm text-orange-200 space-y-2">
           <li>✓ Real-time sync enabled - changes appear instantly</li>

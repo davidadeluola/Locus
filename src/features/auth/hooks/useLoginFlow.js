@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useGoogleAuth } from "../../../hooks/useGoogleAuth";
 import { loginWithPassword } from "../services/loginService";
+import { consumeRateLimit, resetRateLimit } from '../../../lib/security/rateLimiter';
+import { normalizeEmail, validateLoginInput } from '../../../lib/schemas/authSchemas';
+
+const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 20;
 
 export const useLoginFlow = ({ onSuccess }) => {
   const { signInWithGoogle, loading: googleLoading, error: googleError } = useGoogleAuth();
@@ -12,6 +17,26 @@ export const useLoginFlow = ({ onSuccess }) => {
   const handleLogin = async (event) => {
     event.preventDefault();
     setError("");
+
+    const validation = validateLoginInput(email, password);
+    if (!validation.valid) {
+      setError(validation.error);
+      return;
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const rateKey = `login:${normalizedEmail}`;
+    const rateCheck = consumeRateLimit(rateKey, {
+      maxAttempts: LOGIN_MAX_ATTEMPTS,
+      windowMs: LOGIN_RATE_WINDOW_MS,
+    });
+
+    if (!rateCheck.allowed) {
+      const waitMinutes = Math.max(1, Math.ceil(rateCheck.retryAfterSeconds / 60));
+      setError(`Too many login attempts. Try again in about ${waitMinutes} minute(s).`);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -22,6 +47,7 @@ export const useLoginFlow = ({ onSuccess }) => {
         return;
       }
 
+      resetRateLimit(rateKey);
       onSuccess();
     } catch {
       setError("SYSTEM_AUTH_FAILURE: Check connection parameters");

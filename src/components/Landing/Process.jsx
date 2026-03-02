@@ -1,9 +1,23 @@
-import React from "react";
-import { QrCode, MapPin, ShieldCheck, FileSpreadsheet } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { MapPin, ShieldCheck, FileSpreadsheet } from "lucide-react";
 import { motion } from "framer-motion";
 import steps from "../../lib/data/howitworks.jsx";
 
 const Process = () => {
+  const otpDigits = ["1", "2", "3", "4", "5", "6"];
+  const [otpStep, setOtpStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOtpStep((current) => (current + 1) % (otpDigits.length * 2));
+    }, 360);
+
+    return () => clearInterval(interval);
+  }, [otpDigits.length]);
+
+  const activeOtpIndex = Math.floor(otpStep / 2);
+  const isMaskPhase = otpStep % 2 === 1;
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -40,7 +54,7 @@ const Process = () => {
     >
       {/* LEFT/TOP: The "Live Feed" Visualizer (Orange) */}
       <motion.div
-        className="w-full hidden md:flex md:w-1/2 bg-orange-600 relative border-r border-zinc-900 items-center justify-center py-24 md:py-0"
+        className="w-full flex md:w-1/2 bg-orange-600 relative border-b md:border-b-0 md:border-r border-zinc-900 items-center justify-center py-16 sm:py-20 md:py-0"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
@@ -57,48 +71,67 @@ const Process = () => {
 
         <div className="relative z-10 flex flex-col items-center">
           <motion.div
-            className="w-64 h-64 md:w-80 md:h-80 bg-zinc-950 rounded-3xl border-8 border-white/10 flex items-center justify-center relative shadow-2xl overflow-hidden"
+            className="w-[88vw] max-w-[320px] sm:max-w-[360px] md:max-w-[420px] aspect-square bg-zinc-950 rounded-3xl border-[6px] md:border-8 border-white/10 flex items-center justify-center relative shadow-2xl overflow-hidden"
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 4, repeat: Infinity }}
           >
-            {/* Scanning Line Animation */}
-            <motion.div
-              className="absolute inset-x-0 h-1 bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,1)] z-20"
-              animate={{ top: ["0%", "100%", "0%"] }}
-              transition={{
-                duration: 4,
-                ease: "linear",
-                repeat: Infinity,
-              }}
-            />
-            <QrCode
-              size={140}
-              className="text-white opacity-20 animate-pulse"
-              strokeWidth={1}
-            />
+            {/* Static Desktop Scan Line */}
+            <div className="hidden md:block absolute top-0 inset-x-0 h-1 bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,1)] z-20" />
+            <div className="flex items-end gap-2 sm:gap-3 -translate-y-3 md:-translate-y-5">
+              {otpDigits.map((digit, index) => (
+                <div key={index} className="flex flex-col items-center gap-2">
+                  <div className="relative h-10 sm:h-12 md:h-14 w-6 sm:w-8 md:w-10 flex items-center justify-center">
+                    <motion.span
+                      className="absolute text-orange-500 font-mono font-black text-4xl sm:text-5xl md:text-6xl leading-none"
+                      animate={{ y: activeOtpIndex === index && !isMaskPhase ? -14 : 8 }}
+                      transition={{
+                        duration: 0.16,
+                        ease: "linear",
+                      }}
+                    >
+                      {activeOtpIndex === index && !isMaskPhase ? digit : "*"}
+                    </motion.span>
+                  </div>
+                  <motion.div
+                    className="h-0.5 w-6 sm:w-7 md:w-8 bg-orange-500 rounded-full"
+                    animate={{
+                      opacity:
+                        activeOtpIndex === index && !isMaskPhase ? 1 : 0.35,
+                      scaleX:
+                        activeOtpIndex === index && !isMaskPhase ? 1.12 : 0.75,
+                      y: activeOtpIndex === index && !isMaskPhase ? -5 : 4,
+                    }}
+                    transition={{
+                      duration: 0.16,
+                      ease: "linear",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Status Badge */}
           <motion.div
-            className="absolute top-full mt-4 left-1/2 -translate-x-1/2 bg-white text-zinc-950 px-6 py-2 rounded-full font-bold text-sm tracking-tighter shadow-xl"
+            className="mt-4 md:absolute md:top-full md:mt-4 md:left-1/2 md:-translate-x-1/2 bg-white text-zinc-950 px-6 py-2 rounded-full font-bold text-sm tracking-tighter shadow-xl"
             animate={{ opacity: [0.7, 1, 0.7] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            SYSTEM_SCANNING...
+            VERIFYING_OTP...
           </motion.div>
 
-  <motion.div
-    className="mt-12 text-center hidden md:block"
-    initial={{ opacity: 0, y: 10 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ duration: 0.6, delay: 0.4 }}
-  >
-    <p className="text-white/60 font-mono text-xs uppercase tracking-[0.5em]">
-      Verification_Node: 0x82...79
-    </p>
-  </motion.div>
-</div>
+          <motion.div
+            className="mt-12 text-center hidden md:block"
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <p className="text-white/60 font-mono text-xs uppercase tracking-[0.5em]">
+              Verification_Node: 0x82...79
+            </p>
+          </motion.div>
+        </div>
       </motion.div>
 
       {/* RIGHT/BOTTOM: The Step-by-Step Protocol (White) */}

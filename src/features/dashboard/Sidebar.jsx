@@ -9,10 +9,10 @@ import {
 
   UserCheck,
   BookOpen,
-  Settings,
+  // Settings,
   LogOut,
-  ShieldCheck,
-  Users,
+  // ShieldCheck,
+  // Users,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -116,21 +116,21 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             label: "Control Room",
             path: "",
           },
-          {
-            icon: <Users size={20} />,
-            label: "Manage Students",
-            path: "students",
-          },
+          // {
+          //   icon: <Users size={20} />,
+          //   label: "Manage Students",
+          //   path: "students",
+          // },
           {
             icon: <BookOpen size={20} />,
             label: "Course Modules",
             path: "courses",
           },
-          {
-            icon: <ShieldCheck size={20} />,
-            label: "Attendance Audit",
-            path: "audit",
-          },
+          // {
+          //   icon: <ShieldCheck size={20} />,
+          //   label: "Attendance Audit",
+          //   path: "audit",
+          // },
         ]
       : [
           {
@@ -143,11 +143,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             label: "Check-In",
             path: "attendance",
           },
-          {
-            icon: <BookOpen size={20} />,
-            label: "Resources",
-            path: "resources",
-          },
+          // {
+          //   icon: <BookOpen size={20} />,
+          //   label: "Resources",
+          //   path: "resources",
+          // },
         ];
 
   return (

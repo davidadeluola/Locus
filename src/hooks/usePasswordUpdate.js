@@ -1,6 +1,6 @@
 import { useState } from "react";
-import authRepository from '../services/repositories/authRepository.js';
-// Migrated to `authRepository` for centralized auth access.
+import { emailRepository } from '../services/repositories/index.js';
+import { updatePassword as updatePasswordService } from '../features/auth/services/loginService';
 
 export const usePasswordUpdate = () => {
   const [loading, setLoading] = useState(false);
@@ -11,7 +11,18 @@ export const usePasswordUpdate = () => {
     setLoading(true);
 
     try {
-      const data = await authRepository.updateUser({ password: newPassword });
+      const result = await updatePasswordService(newPassword);
+      if (!result.success) {
+        throw result.error || new Error('Unable to update security cipher.');
+      }
+
+      const data = result.data;
+
+      const updatedEmail = data?.user?.email;
+      if (updatedEmail && emailRepository.isEnabled()) {
+        await emailRepository.sendPasswordUpdatedNotice({ to: updatedEmail });
+      }
+
       return { data, error: null };
     } catch (err) {
       const fallback = "Unable to update security cipher.";
