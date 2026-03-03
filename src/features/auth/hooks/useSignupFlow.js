@@ -58,6 +58,9 @@ const mapProfileError = (err) => {
 };
 
 export const useSignupFlow = ({ onVerified }) => {
+  const baseAppUrl = import.meta.env.VITE_BASE_URL?.trim() || window.location.origin;
+  const authCallbackUrl = new URL('/auth/callback', baseAppUrl).toString();
+
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [otp, setOtp] = useState("");
@@ -119,7 +122,7 @@ export const useSignupFlow = ({ onVerified }) => {
         supabase,
         formData.email,
         formData.password,
-        `${window.location.origin}/auth/callback`
+        authCallbackUrl
       );
 
       if (!data?.user) {

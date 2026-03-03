@@ -8,6 +8,10 @@ import {
 import { emailRepository } from '../../../services/repositories/index.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const publicAppUrl =
+  import.meta.env.VITE_BASE_URL?.trim() || window.location.origin;
+const authCallbackUrl = new URL('/auth/callback', publicAppUrl).toString();
+const loginRedirectUrl = new URL('/login', publicAppUrl).toString();
 
 function mapLoginError(error) {
   const rawMessage = String(error?.message || '').toLowerCase();
@@ -74,7 +78,7 @@ export const loginWithGoogle = async () => {
   return supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: authCallbackUrl,
     },
   });
 };
@@ -87,7 +91,7 @@ export const requestPasswordReset = async (email) => {
 
   const normalizedEmail = normalizeEmail(email);
   return supabase.auth.resetPasswordForEmail(normalizedEmail, {
-    redirectTo: `${window.location.origin}/login`,
+    redirectTo: loginRedirectUrl,
   });
 };
 

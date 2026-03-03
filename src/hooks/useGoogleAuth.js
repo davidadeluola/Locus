@@ -6,13 +6,17 @@ export const useGoogleAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const baseAppUrl =
+    import.meta.env.VITE_BASE_URL?.trim() || window.location.origin;
+  const oauthRedirectUrl = new URL("/auth/callback", baseAppUrl).toString();
+
   const signInWithGoogle = async () => {
     setError("");
     setLoading(true);
 
     try {
       await authRepository.signInWithOAuth("google", {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: oauthRedirectUrl,
       });
 
       return { error: null };
