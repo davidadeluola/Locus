@@ -16,6 +16,8 @@ const lock = async (_name, _acquireTimeout, fn) => fn();
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     lock,
+    flowType: "pkce",
+    detectSessionInUrl: true,
   },
 });
 
@@ -30,5 +32,6 @@ export function handleSupabaseError(err) {
     }
   } catch (e) {
     // no-op
+    throw new Error(e)
   }
 }

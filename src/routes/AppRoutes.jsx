@@ -9,7 +9,7 @@ import ProtectedRoute from "../components/shared/ProtectedRoute";
 import Login from '../features/auth/Login';
 import Signup from '../features/auth/Signup';
 import ForgotPassword from '../features/auth/ForgotPassword';
-import AuthCallback from '../pages/auth/AuthCallback';
+import AuthCallback from '../pages/AuthCallback';
 import UpdatePassword from '../pages/auth/UpdatePassword';
 import DashboardRouter from '../features/dashboard/DashboardRouter';
 // import Preloader from "../components/UI/Preloader";
