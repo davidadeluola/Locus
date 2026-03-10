@@ -1,8 +1,10 @@
 import CourseRepository from './courseRepository.js';
 import SessionRepository from './sessionRepository.js';
 import AttendanceRepository from './attendanceRepository.js';
+import AuditRepository from './auditRepository.js';
 import EnrollmentRepository from './enrollmentRepository.js';
 import ProfileRepository from './profileRepository.js';
+import SummaryExportRepository from './summaryExportRepository.js';
 import UserRepository from './userRepository.js';
 import SchoolRepository from './schoolRepository.js';
 import emailRepository from './emailRepository.js';
@@ -12,8 +14,10 @@ import { supabase } from '../../api/supabase.js';
 export const courseRepository = new CourseRepository({ supabaseClient: supabase });
 export const sessionRepository = new SessionRepository({ supabaseClient: supabase });
 export const attendanceRepository = new AttendanceRepository({ supabaseClient: supabase });
+export const auditRepository = new AuditRepository({ supabaseClient: supabase });
 export const enrollmentRepository = new EnrollmentRepository({ supabaseClient: supabase });
 export const profileRepository = new ProfileRepository({ supabaseClient: supabase });
+export const summaryExportRepository = new SummaryExportRepository({ supabaseClient: supabase });
 export const userRepository = new UserRepository({ supabaseClient: supabase });
 export const schoolRepository = new SchoolRepository({ supabaseClient: supabase });
 export { emailRepository };
@@ -22,8 +26,10 @@ export default {
   courseRepository,
   sessionRepository,
   attendanceRepository,
+  auditRepository,
   enrollmentRepository,
   profileRepository,
+  summaryExportRepository,
   userRepository,
   schoolRepository,
   emailRepository,
