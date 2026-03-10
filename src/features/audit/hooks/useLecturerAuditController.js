@@ -351,7 +351,9 @@ export default function useLecturerAuditController() {
 
     const rows = groupedSessions.map((session, index) => [
       index + 1,
-      `${sanitizeFileName(session.course_title)}_attendance.xls`,
+      session.session_id,
+      session.course_code || '',
+      session.course_title || '',
       session.total || 0,
       session.created_at || '',
     ]);
@@ -375,7 +377,7 @@ export default function useLecturerAuditController() {
             : `attendance_summary_${new Date().toISOString().slice(0, 10)}.xls`,
         mimeType: 'application/vnd.ms-excel',
         fileExtension: 'xls',
-        headers: ['s/n', 'filename', 'attendant_count', 'date'],
+        headers: ['s/n', 'session_id', 'course_code', 'course_title', 'attendant_count', 'date'],
         rows,
         summaryDate: new Date().toISOString(),
         metadata: {

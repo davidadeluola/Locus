@@ -4,6 +4,13 @@ import PaginationControls from './PaginationControls';
 
 const PAGE_SIZE = 10;
 
+function formatDateTime(value) {
+  if (!value) return 'N/A';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'N/A';
+  return parsed.toLocaleString();
+}
+
 export default function AuditSummaryTable({ sessions, loading, onExportSessionReport }) {
   const {
     currentPage,
@@ -33,15 +40,15 @@ export default function AuditSummaryTable({ sessions, loading, onExportSessionRe
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-215">
             <thead>
               <tr className="border-b border-zinc-800">
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">S/N</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">No.</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Course Title</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Course Code</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Students Registered</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Date & Time</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Download</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Attendance Count</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Session Date</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Export</th>
               </tr>
             </thead>
             <tbody>
@@ -58,14 +65,14 @@ export default function AuditSummaryTable({ sessions, loading, onExportSessionRe
                       {session.total}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-zinc-300">{new Date(session.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-300">{formatDateTime(session.created_at)}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => onExportSessionReport(session.session_id)}
                       className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-mono uppercase text-emerald-500 transition-all hover:bg-emerald-500/20"
                     >
                       <Download size={12} />
-                      CSV
+                      Export CSV
                     </button>
                   </td>
                 </tr>

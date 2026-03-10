@@ -70,7 +70,7 @@ export function RecentSessionsList({ sessions = [], onSessionSelect = () => {}, 
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="bg-zinc-800 h-12 rounded-lg animate-pulse" />
+          <div key={i} className="bg-zinc-800 h-14 rounded-lg animate-pulse" />
         ))}
       </div>
     );
@@ -85,32 +85,32 @@ export function RecentSessionsList({ sessions = [], onSessionSelect = () => {}, 
   }
 
   return (
-    <div className="space-y-3">
-      {sessions.map((session) => (
-        <button
-          key={session.id}
-          onClick={() => onSessionSelect(session)}
-          className="w-full text-left p-4 bg-zinc-800/50 border border-zinc-700 hover:border-orange-500/50 rounded-lg transition-all"
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="font-semibold text-sm text-white">
-                {session.classes?.course_code}: {session.classes?.course_title}
-              </p>
-              <p className="text-xs text-zinc-400 mt-1">
-                {new Date(session.created_at).toLocaleDateString()}
-              </p>
-              <p className="text-[10px] text-sky-400 mt-2 uppercase tracking-widest font-mono">Open Audit</p>
-            </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-orange-500">
-                {session.attendance_count || 0}
-              </p>
-              <p className="text-xs text-zinc-500">Present</p>
-            </div>
-          </div>
-        </button>
-      ))}
+    <div className="overflow-hidden rounded-xl border border-zinc-800">
+      <ul className="divide-y divide-zinc-800">
+        {sessions.map((session) => (
+          <li key={session.id}>
+            <button
+              onClick={() => onSessionSelect(session)}
+              className="w-full text-left px-4 py-3 bg-zinc-900/50 hover:bg-zinc-800/50 transition-all"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-white truncate">
+                    {(session.classes?.course_code || 'N/A')} - {(session.classes?.course_title || 'Untitled Course')}
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {new Date(session.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">Present</p>
+                  <p className="text-lg font-bold text-orange-500">{session.attendance_count || 0}</p>
+                </div>
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -151,7 +151,7 @@ export function SessionPerformanceCard({ performance = null, loading = false }) 
     : 'bg-red-500';
 
   return (
-    <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-6 rounded-2xl">
+    <div className="bg-linear-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-6 rounded-2xl">
       <h3 className="text-sm font-mono uppercase tracking-widest mb-4 flex items-center gap-2">
         <span className="text-orange-500">📊</span>
         Latest Session Performance
@@ -173,7 +173,7 @@ export function SessionPerformanceCard({ performance = null, loading = false }) 
           <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
             <div
               className={`h-full ${progressColor} transition-all`}
-              style={{ width: `${Math.min(100, performance.attendanceDensity)}%` }}
+              style={{ inlineSize: `${Math.min(100, performance.attendanceDensity)}%` }}
             />
           </div>
         </div>

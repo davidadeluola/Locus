@@ -1,49 +1,63 @@
-import AuditFiltersBar from '../features/audit/components/AuditFiltersBar';
-import AuditPageHeader from '../features/audit/components/AuditPageHeader';
-import AuditRecordsTable from '../features/audit/components/AuditRecordsTable';
-import AuditSummaryTable from '../features/audit/components/AuditSummaryTable';
-import SavedSummaryFilesTable from '../features/audit/components/SavedSummaryFilesTable';
 import useLecturerAuditController from '../features/audit/hooks/useLecturerAuditController';
+import AuditPageHeader from '../features/audit/components/AuditPageHeader';
+import AuditFiltersBar from '../features/audit/components/AuditFiltersBar';
+import AuditSummaryTable from '../features/audit/components/AuditSummaryTable';
+import AuditRecordsTable from '../features/audit/components/AuditRecordsTable';
+import SavedSummaryFilesTable from '../features/audit/components/SavedSummaryFilesTable';
 
 const LecturerAuditPage = () => {
-  const audit = useLecturerAuditController();
+  const {
+    loading,
+    sessionFilter,
+    classFilter,
+    classOptions,
+    groupedSessions,
+    filteredAuditLogs,
+    filteredSummaryFiles,
+    clearFilters,
+    setClassFilter,
+    exportAllReport,
+    exportSessionReport,
+    exportSummaryReport,
+    downloadSummaryFile,
+  } = useLecturerAuditController();
 
   return (
     <div className="space-y-6">
-      <AuditPageHeader
-        sessionCount={audit.groupedSessions.length}
-        recordCount={audit.filteredAuditLogs.length}
-        fileCount={audit.filteredSummaryFiles.length}
-      />
+      {/* Header */}
+      <AuditPageHeader />
 
+      {/* Filters and Actions */}
       <AuditFiltersBar
-        classOptions={audit.classOptions}
-        classFilter={audit.classFilter}
-        sessionFilter={audit.sessionFilter}
-        filteredSessionCount={audit.groupedSessions.length}
-        savedFileCount={audit.filteredSummaryFiles.length}
-        onClassFilterChange={audit.setClassFilter}
-        onClearFilters={audit.clearFilters}
-        onExportAll={audit.exportAllReport}
-        onExportSummary={audit.exportSummaryReport}
+        classOptions={classOptions}
+        classFilter={classFilter}
+        sessionFilter={sessionFilter}
+        filteredSessionCount={groupedSessions.length}
+        savedFileCount={filteredSummaryFiles.length}
+        onClassFilterChange={setClassFilter}
+        onClearFilters={clearFilters}
+        onExportAll={exportAllReport}
+        onExportSummary={exportSummaryReport}
       />
 
+      {/* Session Summary Table */}
       <AuditSummaryTable
-        sessions={audit.groupedSessions}
-        loading={audit.loading}
-        onExportSessionReport={audit.exportSessionReport}
+        loading={loading}
+        sessions={groupedSessions}
+        onExportSession={exportSessionReport}
       />
 
+      {/* Full Attendance Records */}
       <AuditRecordsTable
-        records={audit.filteredAuditLogs}
-        loading={audit.loading}
-        title={audit.sessionFilter ? 'Session Records' : 'Attendance Records'}
+        loading={loading}
+        records={filteredAuditLogs}
       />
 
+      {/* Saved Summary Files */}
       <SavedSummaryFilesTable
-        files={audit.filteredSummaryFiles}
-        loading={audit.loading}
-        onDownloadFile={audit.downloadSummaryFile}
+        loading={loading}
+        files={filteredSummaryFiles}
+        onDownload={downloadSummaryFile}
       />
     </div>
   );

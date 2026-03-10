@@ -5,6 +5,13 @@ import PaginationControls from './PaginationControls';
 
 const PAGE_SIZE = 10;
 
+function formatDateTime(value) {
+  if (!value) return 'N/A';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'N/A';
+  return parsed.toLocaleString();
+}
+
 export default function AuditRecordsTable({ records, loading, title }) {
   const {
     currentPage,
@@ -29,9 +36,10 @@ export default function AuditRecordsTable({ records, loading, title }) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-215">
             <thead>
               <tr className="border-b border-zinc-800">
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">No.</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Date</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Student</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Matric</th>
@@ -40,9 +48,10 @@ export default function AuditRecordsTable({ records, loading, title }) {
               </tr>
             </thead>
             <tbody>
-              {paginatedItems.map((log) => (
+              {paginatedItems.map((log, index) => (
                 <tr key={log.id} className="border-b border-zinc-800/50 transition-all hover:bg-zinc-800/30">
-                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{new Date(log.signed_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{formatDateTime(log.signed_at)}</td>
                   <td className="px-4 py-3 text-sm">{log.profiles?.full_name || 'Unknown'}</td>
                   <td className="px-4 py-3 font-mono text-xs text-zinc-400">{log.profiles?.matric_no || 'N/A'}</td>
                   <td className="px-4 py-3 font-mono text-xs">{log.sessions?.classes?.course_code || 'N/A'}</td>

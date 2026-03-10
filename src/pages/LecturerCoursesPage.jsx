@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Plus, AlertCircle, Check, ShieldCheck } from "lucide-react";
+import { BookOpen, Plus, AlertCircle, Check } from "lucide-react";
 import { useUser } from "../hooks/useUser";
 import { useCourses } from "../hooks/useCourses";
 
@@ -79,6 +79,13 @@ const LecturerCoursesPage = () => {
     if (e.key === "Enter" && !loading && courseCode.trim() && courseTitle.trim()) {
       createCourse();
     }
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "N/A";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "N/A";
+    return parsed.toLocaleDateString();
   };
 
   return (
@@ -163,76 +170,69 @@ const LecturerCoursesPage = () => {
         </p>
       </div>
 
-      {/* Courses Grid */}
-      {coursesLoading ? (
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl text-center py-12">
-          <div className="text-zinc-500 font-mono text-sm">Loading courses...</div>
+      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+        <div className="mb-5">
+          <h6 className="text-sm font-semibold text-zinc-100">Created Modules / Classes</h6>
+          <p className="text-xs text-zinc-500 font-mono mt-1">Classes that you have created</p>
         </div>
-      ) : courses.length === 0 ? (
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl text-center py-12">
-          <BookOpen className="mx-auto mb-4 text-zinc-700" size={48} />
-          <p className="text-zinc-500 font-mono text-sm">No courses created yet</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
-            <article
-              key={course.id}
-              className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl hover:border-orange-500/50 transition-all duration-300 group cursor-pointer"
-              onClick={() => navigate("/dashboard", { 
-                state: { 
-                  newCourseId: course.id,
-                  newCourseCode: course.course_code,
-                  focusSession: true,
-                  autoSelectCourse: true
-                } 
-              })}
-            >
-              <p className="text-xs font-mono uppercase tracking-widest text-orange-500 group-hover:text-orange-400 transition-colors">
-                {course.course_code}
-              </p>
-              <h3 className="text-lg font-bold mt-2 text-zinc-100">{course.course_title}</h3>
-              <div className="mt-3 space-y-1">
-                <p className="text-xs font-mono text-zinc-500">Department: {course.department || "N/A"}</p>
-                <p className="text-xs font-mono text-zinc-500">Level: {course.level ?? "N/A"}</p>
-              </div>
-              <p className="text-xs font-mono text-zinc-600 mt-3">
-                Created: {new Date(course.created_at).toLocaleDateString()}
-              </p>
-              <div className="mt-4 flex gap-2">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate("/dashboard", {
-                      state: {
-                        newCourseId: course.id,
-                        newCourseCode: course.course_code,
-                        focusSession: true,
-                        autoSelectCourse: true,
-                      },
-                    });
-                  }}
-                  className="flex-1 px-3 py-2 rounded-lg bg-orange-600/20 border border-orange-500/40 text-orange-400 text-[10px] font-mono uppercase tracking-widest hover:bg-orange-600/30"
-                >
-                  Create Session
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(`/dashboard/audit?classId=${encodeURIComponent(course.id)}`);
-                  }}
-                  className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-sky-600/20 border border-sky-500/40 text-sky-300 text-[10px] font-mono uppercase tracking-widest hover:bg-sky-600/30"
-                >
-                  <ShieldCheck size={12} />
-                  Audit
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+
+        {coursesLoading ? (
+          <div className="text-center py-10">
+            <div className="text-zinc-500 font-mono text-sm">Loading created modules...</div>
+          </div>
+        ) : courses.length === 0 ? (
+          <div className="text-center py-10">
+            <BookOpen className="mx-auto mb-4 text-zinc-700" size={40} />
+            <p className="text-zinc-500 font-mono text-sm">No classes created yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-230">
+              <thead>
+                <tr className="border-b border-zinc-800">
+                  <th className="py-3 px-4 text-left font-mono text-xs uppercase text-zinc-500">S/N</th>
+                  <th className="py-3 px-4 text-left font-mono text-xs uppercase text-zinc-500">Course Code</th>
+                  <th className="py-3 px-4 text-left font-mono text-xs uppercase text-zinc-500">Course Title</th>
+                  <th className="py-3 px-4 text-left font-mono text-xs uppercase text-zinc-500">Department</th>
+                  <th className="py-3 px-4 text-left font-mono text-xs uppercase text-zinc-500">Level</th>
+                  <th className="py-3 px-4 text-left font-mono text-xs uppercase text-zinc-500">Created</th>
+                  <th className="py-3 px-4 text-left font-mono text-xs uppercase text-zinc-500">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {courses.map((course, index) => (
+                  <tr key={course.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-all">
+                    <td className="py-3 px-4 font-mono text-xs text-zinc-400">{index + 1}</td>
+                    <td className="py-3 px-4 font-mono text-xs text-orange-500">{course.course_code || "N/A"}</td>
+                    <td className="py-3 px-4 text-sm text-zinc-100">{course.course_title || "N/A"}</td>
+                    <td className="py-3 px-4 font-mono text-xs text-zinc-400">{course.department || "N/A"}</td>
+                    <td className="py-3 px-4 font-mono text-xs text-zinc-400">{course.level ?? "N/A"}</td>
+                    <td className="py-3 px-4 font-mono text-xs text-zinc-400">{formatDate(course.created_at)}</td>
+                    <td className="py-3 px-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate("/dashboard", {
+                            state: {
+                              newCourseId: course.id,
+                              newCourseCode: course.course_code,
+                              focusSession: true,
+                              autoSelectCourse: true,
+                            },
+                          });
+                        }}
+                        className="px-3 py-2 rounded-lg bg-orange-600/20 border border-orange-500/40 text-orange-400 text-[10px] font-mono uppercase tracking-widest hover:bg-orange-600/30"
+                      >
+                        Create Session
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

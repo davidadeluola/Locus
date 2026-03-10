@@ -147,8 +147,15 @@ export default class SessionRepository extends BaseRepository {
       const filename = `${courseTitle.replace(/\s+/g, '_')}_attendance_summary.xls`;
       const summaryDate = sessionRow.created_at || new Date().toISOString();
       const contentText = buildCsvContent(
-        ['s/n', 'filename', 'attendant_count', 'date'],
-        [[1, filename, attendanceCount, summaryDate]]
+        ['s/n', 'session_id', 'course_code', 'course_title', 'attendant_count', 'date'],
+        [[
+          1,
+          id,
+          sessionRow.classes?.course_code || '',
+          sessionRow.classes?.course_title || courseTitle,
+          attendanceCount,
+          summaryDate,
+        ]]
       );
 
       return await this.summaryExportRepository.save({

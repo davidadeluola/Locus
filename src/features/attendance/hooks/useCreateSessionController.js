@@ -17,12 +17,19 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function buildSessionSummaryRows(room) {
+function buildSessionSummaryRows(room, sessionId) {
   const filename = `${(room.class?.title || 'session').replace(/\s+/g, '_')}_attendance_summary.xls`;
 
   return {
     filename,
-    rows: [[1, filename, room.metrics?.present || 0, room.session?.expires_at || new Date().toISOString()]],
+    rows: [[
+      1,
+      sessionId,
+      room.class?.code || '',
+      room.class?.title || '',
+      room.metrics?.present || 0,
+      room.session?.expires_at || new Date().toISOString(),
+    ]],
   };
 }
 
@@ -132,7 +139,7 @@ export default function useCreateSessionController({ classId, onSessionCreated }
       try {
         const room = await sessionService.buildRoom(session.id);
         if (room) {
-          const { filename, rows } = buildSessionSummaryRows(room);
+          const { filename, rows } = buildSessionSummaryRows(room, session.id);
           await summaryExportService.saveAndDownloadCsvFile({
             exportKey: `session:${session.id}:finalize`,
             lecturerId: user.id,
@@ -143,7 +150,7 @@ export default function useCreateSessionController({ classId, onSessionCreated }
             filename,
             mimeType: 'application/vnd.ms-excel',
             fileExtension: 'xls',
-            headers: ['s/n', 'filename', 'attendant_count', 'date'],
+            headers: ['s/n', 'session_id', 'course_code', 'course_title', 'attendant_count', 'date'],
             rows,
             summaryDate: room.session?.expires_at || new Date().toISOString(),
             metadata: {

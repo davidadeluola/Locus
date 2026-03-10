@@ -10,6 +10,20 @@ function getScopeLabel(file) {
   return file.metadata?.course_title || 'Session Summary';
 }
 
+function getCourseLabel(file) {
+  const code = file.metadata?.course_code || '';
+  const title = file.metadata?.course_title || '';
+  if (code && title) return `${code} - ${title}`;
+  return code || title || 'N/A';
+}
+
+function formatDateTime(value) {
+  if (!value) return 'N/A';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'N/A';
+  return parsed.toLocaleString();
+}
+
 export default function SavedSummaryFilesTable({ files, loading, onDownloadFile }) {
   const {
     currentPage,
@@ -36,10 +50,12 @@ export default function SavedSummaryFilesTable({ files, loading, onDownloadFile 
         <p className="text-sm text-zinc-500">No saved summary files yet. Export a summary to persist it here.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-230">
             <thead>
               <tr className="border-b border-zinc-800">
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">No.</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Filename</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Course</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Scope</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Rows</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase text-zinc-500">Saved At</th>
@@ -47,12 +63,14 @@ export default function SavedSummaryFilesTable({ files, loading, onDownloadFile 
               </tr>
             </thead>
             <tbody>
-              {paginatedItems.map((file) => (
+              {paginatedItems.map((file, index) => (
                 <tr key={file.id} className="border-b border-zinc-800/50 transition-all hover:bg-zinc-800/30">
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                   <td className="px-4 py-3 text-sm text-zinc-200">{file.filename}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-300">{getCourseLabel(file)}</td>
                   <td className="px-4 py-3 font-mono text-xs text-zinc-400">{getScopeLabel(file)}</td>
                   <td className="px-4 py-3 font-mono text-xs text-zinc-400">{file.row_count}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{new Date(file.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{formatDateTime(file.created_at)}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => onDownloadFile(file)}
