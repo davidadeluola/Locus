@@ -133,7 +133,7 @@ export default class SessionRepository extends BaseRepository {
           class_id,
           created_at,
           expires_at,
-          classes(id, course_code, course_title, department, course_department)
+          classes(id, course_code, course_title, department)
         `)
         .eq('id', id)
         .maybeSingle();
@@ -167,7 +167,7 @@ export default class SessionRepository extends BaseRepository {
         metadata: {
           course_code: sessionRow.classes?.course_code || '',
           course_title: sessionRow.classes?.course_title || courseTitle,
-          course_department: sessionRow.classes?.course_department || sessionRow.classes?.department || '',
+          course_department: sessionRow.classes?.department || '',
           attendant_count: attendanceCount,
         },
         updated_at: new Date().toISOString(),

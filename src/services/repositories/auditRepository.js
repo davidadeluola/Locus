@@ -17,7 +17,7 @@ export default class AuditRepository extends BaseRepository {
         archived_at,
         lecturer_id,
         class_id,
-        classes(id, course_code, course_title, department, course_department)
+        classes(id, course_code, course_title, department)
       `)
       .eq('lecturer_id', lecturerId)
       .order('created_at', { ascending: false });
@@ -73,7 +73,7 @@ export default class AuditRepository extends BaseRepository {
           archived_at,
           lecturer_id,
           class_id,
-          classes(id, course_code, course_title, department, course_department)
+          classes(id, course_code, course_title, department)
         )
       `)
       .eq('sessions.lecturer_id', lecturerId)

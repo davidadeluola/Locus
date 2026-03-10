@@ -40,7 +40,7 @@ function normalizePersistedLogs(auditRows, sessionRows, profileRows) {
           id: session?.classes?.id || session?.class_id || null,
           course_code: session?.classes?.course_code || '',
           course_title: session?.classes?.course_title || '',
-          course_department: session?.classes?.course_department || session?.classes?.department || '',
+          course_department: session?.classes?.department || '',
         },
       },
     };
@@ -69,7 +69,7 @@ function normalizeLiveLogs(logs) {
         id: log.sessions?.classes?.id || log.sessions?.class_id || null,
         course_code: log.sessions?.classes?.course_code || '',
         course_title: log.sessions?.classes?.course_title || '',
-        course_department: log.sessions?.classes?.course_department || log.sessions?.classes?.department || '',
+        course_department: log.sessions?.classes?.department || '',
       },
     },
   }));
