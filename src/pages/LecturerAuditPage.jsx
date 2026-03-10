@@ -47,11 +47,14 @@ const LecturerAuditPage = () => {
         onExportSession={exportSessionReport}
       />
 
-      {/* Full Attendance Records */}
-      <AuditRecordsTable
-        loading={loading}
-        records={filteredAuditLogs}
-      />
+      {/* Full Attendance Records — only shown when a filter is active */}
+      {(classFilter || sessionFilter) && (
+        <AuditRecordsTable
+          loading={loading}
+          records={filteredAuditLogs}
+          title="List of Attended Students"
+        />
+      )}
 
       {/* Saved Summary Files */}
       <SavedSummaryFilesTable
