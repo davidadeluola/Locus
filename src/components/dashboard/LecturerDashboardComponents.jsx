@@ -61,7 +61,7 @@ export function LecturerStatsGrid({ stats = {} }) {
 /**
  * @param {{
  *   sessions: import('../types').Session[],
- *   onSessionSelect: (sessionId: string) => void,
+ *   onSessionSelect: (session: import('../types').Session) => void,
  *   loading: boolean
  * }} props - Component props
  */
@@ -89,7 +89,7 @@ export function RecentSessionsList({ sessions = [], onSessionSelect = () => {}, 
       {sessions.map((session) => (
         <button
           key={session.id}
-          onClick={() => onSessionSelect(session.id)}
+          onClick={() => onSessionSelect(session)}
           className="w-full text-left p-4 bg-zinc-800/50 border border-zinc-700 hover:border-orange-500/50 rounded-lg transition-all"
         >
           <div className="flex items-start justify-between">
@@ -100,6 +100,7 @@ export function RecentSessionsList({ sessions = [], onSessionSelect = () => {}, 
               <p className="text-xs text-zinc-400 mt-1">
                 {new Date(session.created_at).toLocaleDateString()}
               </p>
+              <p className="text-[10px] text-sky-400 mt-2 uppercase tracking-widest font-mono">Open Audit</p>
             </div>
             <div className="text-right">
               <p className="text-lg font-bold text-orange-500">

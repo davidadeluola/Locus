@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { EnrollmentRepository } from '../../repositories/implementations';
 
 export default function CourseRoomsList({ courses = [] }) {
+  const navigate = useNavigate();
   const [counts, setCounts] = useState({});
 
   useEffect(() => {
@@ -44,7 +46,15 @@ export default function CourseRoomsList({ courses = [] }) {
         {occupied.map(c => (
           <li key={c.id} className="flex items-center justify-between p-2 bg-zinc-800 rounded-md">
             <div className="text-sm">{c.course_code} — {c.course_title}</div>
-            <div className="text-xs text-zinc-300 bg-zinc-900 px-2 py-1 rounded-md">{counts[c.id]} students</div>
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-zinc-300 bg-zinc-900 px-2 py-1 rounded-md">{counts[c.id]} students</div>
+              <button
+                onClick={() => navigate(`/dashboard/audit?classId=${encodeURIComponent(c.id)}`)}
+                className="px-2 py-1 rounded-md border border-sky-500/30 bg-sky-500/10 text-sky-400 text-[10px] font-mono uppercase tracking-widest hover:bg-sky-500/20"
+              >
+                Audit
+              </button>
+            </div>
           </li>
         ))}
       </ul>

@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Plus, AlertCircle, Check } from "lucide-react";
+import { BookOpen, Plus, AlertCircle, Check, ShieldCheck } from "lucide-react";
 import { useUser } from "../hooks/useUser";
 import { useCourses } from "../hooks/useCourses";
 
 const LecturerCoursesPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
-  const { courses, loading: coursesLoading, createCourse: createCourseAPI, error: apiError } = useCourses(user?.id);
+  const { courses, loading: coursesLoading, createCourse: createCourseAPI } = useCourses(user?.id);
   
   const [courseCode, setCourseCode] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
@@ -199,9 +199,36 @@ const LecturerCoursesPage = () => {
               <p className="text-xs font-mono text-zinc-600 mt-3">
                 Created: {new Date(course.created_at).toLocaleDateString()}
               </p>
-              <p className="text-xs text-orange-500 font-mono mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                Click to create session →
-              </p>
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate("/dashboard", {
+                      state: {
+                        newCourseId: course.id,
+                        newCourseCode: course.course_code,
+                        focusSession: true,
+                        autoSelectCourse: true,
+                      },
+                    });
+                  }}
+                  className="flex-1 px-3 py-2 rounded-lg bg-orange-600/20 border border-orange-500/40 text-orange-400 text-[10px] font-mono uppercase tracking-widest hover:bg-orange-600/30"
+                >
+                  Create Session
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/dashboard/audit?classId=${encodeURIComponent(course.id)}`);
+                  }}
+                  className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-sky-600/20 border border-sky-500/40 text-sky-300 text-[10px] font-mono uppercase tracking-widest hover:bg-sky-600/30"
+                >
+                  <ShieldCheck size={12} />
+                  Audit
+                </button>
+              </div>
             </article>
           ))}
         </div>
