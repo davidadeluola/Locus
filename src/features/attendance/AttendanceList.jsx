@@ -1,4 +1,6 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { ShieldCheck } from "lucide-react";
 import useAttendanceData from "./hooks/useAttendanceData";
 import { useAuthContext } from '../../context/AuthContext';
 import SessionInfoCard from "./components/SessionInfoCard";
@@ -7,11 +9,20 @@ import AttendanceTable from "./components/AttendanceTable";
 import { formatDistance } from "../../lib/utils/attendanceUtils";
 
 const AttendanceList = ({ sessionId }) => {
+  const navigate = useNavigate();
   const { activeSession } = useAuthContext();
   const effectiveSessionId = sessionId || activeSession?.id || null;
   const { loading, attendanceRecords, sessionInfo, enrolledStudents, stats, exportSessionCsv } = useAttendanceData(effectiveSessionId);
   const { profile, user } = useAuthContext();
   const lecturerName = profile?.full_name || user?.email || '';
+
+  const openAuditForSession = () => {
+    const params = new URLSearchParams();
+    if (sessionInfo?.class_id) params.set('classId', sessionInfo.class_id);
+    if (effectiveSessionId) params.set('sessionId', effectiveSessionId);
+    const query = params.toString();
+    navigate(`/dashboard/audit${query ? `?${query}` : ''}`);
+  };
 
   if (!effectiveSessionId) {
     return (
@@ -65,10 +76,22 @@ const AttendanceList = ({ sessionId }) => {
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6">
           <h3 className="font-mono text-sm uppercase tracking-widest">Live Attendance Registry</h3>
+          <button
+            onClick={openAuditForSession}
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-sky-300 hover:bg-sky-500/20"
+          >
+            <ShieldCheck size={12} />
+            Open Audit
+          </button>
         </div>
-        <AttendanceTable attendanceRecords={attendanceRecords} formatTime={formatTime} formatDistance={formatDistance} />
+        <AttendanceTable
+          attendanceRecords={attendanceRecords}
+          formatTime={formatTime}
+          formatDistance={formatDistance}
+          onOpenAudit={openAuditForSession}
+        />
       </div>
     </div>
   );

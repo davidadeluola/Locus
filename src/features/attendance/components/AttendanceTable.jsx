@@ -1,8 +1,8 @@
 import React from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Clock, MapPin, Users } from 'lucide-react';
+import { Clock, MapPin, ShieldCheck, Users } from 'lucide-react';
 
-const AttendanceTable = ({ attendanceRecords, formatTime, formatDistance }) => {
+const AttendanceTable = ({ attendanceRecords, formatTime, formatDistance, onOpenAudit }) => {
   if (!attendanceRecords || attendanceRecords.length === 0) return (
     <div className="text-center py-12">
       <Users className="mx-auto mb-4 text-zinc-700" size={48} />
@@ -21,6 +21,9 @@ const AttendanceTable = ({ attendanceRecords, formatTime, formatDistance }) => {
             <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">Full Name</th>
             <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">Time</th>
             <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">Distance</th>
+            {onOpenAudit ? (
+              <th className="text-left py-3 px-4 font-mono text-xs uppercase text-zinc-500">Audit</th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -32,6 +35,17 @@ const AttendanceTable = ({ attendanceRecords, formatTime, formatDistance }) => {
                 <td className="py-4 px-4"><span className="text-sm font-medium">{record.profiles?.full_name || 'Unknown Student'}</span></td>
                 <td className="py-4 px-4"><div className="flex items-center gap-2"><Clock size={14} className="text-zinc-500" /><span className="font-mono text-xs text-zinc-400">{formatTime(record.signed_at)}</span></div></td>
                 <td className="py-4 px-4"><div className="flex items-center gap-2"><MapPin size={14} className="text-emerald-500" /><span className="font-mono text-xs text-emerald-500">{formatDistance(record.distance_meters)}</span></div></td>
+                {onOpenAudit ? (
+                  <td className="py-4 px-4">
+                    <button
+                      onClick={onOpenAudit}
+                      className="inline-flex items-center gap-1 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-sky-300 hover:bg-sky-500/20"
+                    >
+                      <ShieldCheck size={10} />
+                      Open
+                    </button>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </AnimatePresence>

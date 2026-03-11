@@ -11,7 +11,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../hooks/useUser';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useLecturerDashboard } from '../../hooks/useDashboardRepository';
 import { LecturerStatsGrid, RecentSessionsList, SessionPerformanceCard } from '../../components/dashboard/LecturerDashboardComponents';
 import ErrorBoundary from '../../components/ErrorBoundary';
@@ -39,6 +39,7 @@ try {
  * @returns {React.ReactElement}
  */
 export default function LecturerDashboard() {
+  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useUser();
   const [nowTs, setNowTs] = useState(() => Date.now());
@@ -62,6 +63,14 @@ export default function LecturerDashboard() {
   }).length;
 
   const averageAttendancePercent = Number(stats?.overallRate || 0);
+
+  const openSessionAudit = (session) => {
+    const params = new URLSearchParams();
+    if (session?.class_id) params.set('classId', session.class_id);
+    if (session?.id) params.set('sessionId', session.id);
+    const query = params.toString();
+    navigate(`/dashboard/audit${query ? `?${query}` : ''}`);
+  };
 
   // Clear navigation state after processing
   useEffect(() => {
@@ -172,7 +181,7 @@ export default function LecturerDashboard() {
                   <h3 className="font-mono text-xs uppercase tracking-widest mb-4">
                     📋 Recent Sessions
                   </h3>
-                  <RecentSessionsList sessions={recentSessions} loading={loading} />
+                  <RecentSessionsList sessions={recentSessions} loading={loading} onSessionSelect={openSessionAudit} />
                 </div>
               </div>
             )}
