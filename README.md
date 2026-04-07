@@ -31,6 +31,10 @@ Environment variables (optional overrides):
 - `KEEPALIVE_PING_INTERVAL_SECONDS` (default: `10`)
 - `KEEPALIVE_RUN_WINDOW_SECONDS` (default: `60`)
 - `KEEPALIVE_TABLE` (default: `classes`)
+- `KEEPALIVE_TRANSPORT` (`database` or `realtime`, default: `database`)
+- `KEEPALIVE_REALTIME_CHANNEL` (default: `keepalive-heartbeat`)
+- `KEEPALIVE_REALTIME_EVENT` (default: `heartbeat`)
+- `KEEPALIVE_SUBSCRIBE_TIMEOUT_MS` (default: `10000`)
 
 Security note for Vercel:
 
@@ -44,4 +48,15 @@ KEEPALIVE_CRON=0 3 * * *
 KEEPALIVE_PING_INTERVAL_SECONDS=10
 KEEPALIVE_RUN_WINDOW_SECONDS=60
 KEEPALIVE_TABLE=classes
+```
+
+Example for websocket heartbeat mode (30-minute window, ping every 30 seconds):
+
+```env
+KEEPALIVE_TRANSPORT=realtime
+KEEPALIVE_CRON=0 3 * * *
+KEEPALIVE_RUN_WINDOW_SECONDS=1800
+KEEPALIVE_PING_INTERVAL_SECONDS=30
+KEEPALIVE_REALTIME_CHANNEL=dashboard-heartbeat
+KEEPALIVE_REALTIME_EVENT=heartbeat
 ```
