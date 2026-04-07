@@ -95,6 +95,16 @@ Both roles get live dashboards powered by Supabase real-time subscriptions so st
 
 ### Installation
 
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_ANON_KEY`
+- `KEEPALIVE_CRON` (default: `0 3 * * *`)
+- `KEEPALIVE_PING_INTERVAL_SECONDS` (default: `10`)
+- `KEEPALIVE_RUN_WINDOW_SECONDS` (default: `60`)
+- `KEEPALIVE_TABLE` (default: `classes`)
+- `KEEPALIVE_TRANSPORT` (`database` or `realtime`, default: `database`)
+- `KEEPALIVE_REALTIME_CHANNEL` (default: `keepalive-heartbeat`)
+- `KEEPALIVE_REALTIME_EVENT` (default: `heartbeat`)
+- `KEEPALIVE_SUBSCRIBE_TIMEOUT_MS` (default: `10000`)
 ```bash
 # 1. Clone the repository
 git clone https://github.com/davidadeluola/Locus.git
@@ -127,6 +137,16 @@ KEEPALIVE_RUN_WINDOW_SECONDS=60
 KEEPALIVE_TABLE=classes
 ```
 
+Example for websocket heartbeat mode (30-minute window, ping every 30 seconds):
+
+```env
+KEEPALIVE_TRANSPORT=realtime
+KEEPALIVE_CRON=0 3 * * *
+KEEPALIVE_RUN_WINDOW_SECONDS=1800
+KEEPALIVE_PING_INTERVAL_SECONDS=30
+KEEPALIVE_REALTIME_CHANNEL=dashboard-heartbeat
+KEEPALIVE_REALTIME_EVENT=heartbeat
+```
 > **Security note:** Only variables prefixed with `VITE_` are bundled into the browser build. Never put secrets (service role keys, API tokens) in `VITE_` variables.
 
 ---
