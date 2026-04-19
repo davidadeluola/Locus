@@ -1,13 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import notify from '../services/notify.jsx';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
 // Fail fast if env variables are missing
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    "Locus Error: Check your .env file for Supabase credentials."
+    "Locus setup error: missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Add them to .env in the project root and restart the Vite dev server."
   );
 }
 
