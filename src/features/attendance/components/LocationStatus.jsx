@@ -1,7 +1,25 @@
 import React from 'react';
 import { MapPin } from 'lucide-react';
 
-export default function LocationStatus({ location, locationError, gettingLocation, onRetry }) {
+function formatPermissionLabel(permissionState, permissionsSupported) {
+  if (!permissionsSupported) return 'Permission API not supported';
+  if (permissionState === 'granted') return 'Permission granted';
+  if (permissionState === 'denied') return 'Permission denied';
+  if (permissionState === 'prompt') return 'Permission prompt required';
+  return 'Permission status unavailable';
+}
+
+export default function LocationStatus({
+  location,
+  locationError,
+  gettingLocation,
+  onRetry,
+  permissionState,
+  permissionsSupported,
+  isSecure,
+}) {
+  const permissionText = formatPermissionLabel(permissionState, permissionsSupported);
+
   return (
     <div className="mb-6 p-4 bg-black/40 rounded-xl border border-zinc-800">
       <div className="flex items-center justify-between">
@@ -39,6 +57,16 @@ export default function LocationStatus({ location, locationError, gettingLocatio
             Retry
           </button>
         )}
+      </div>
+      <div className="mt-3 space-y-1">
+        <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+          {permissionText}
+        </p>
+        {!isSecure ? (
+          <p className="text-[11px] text-amber-400 font-mono">
+            Insecure context detected. Geolocation requires HTTPS or localhost in most browsers.
+          </p>
+        ) : null}
       </div>
       {locationError && <p className="mt-3 text-xs text-red-400 font-mono">{locationError}</p>}
     </div>

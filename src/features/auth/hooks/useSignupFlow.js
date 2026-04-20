@@ -17,6 +17,7 @@ const INITIAL_FORM = {
   email: "",
   password: "",
   confirmPassword: "",
+  profilePhoto: null,
   role: "",
   faculty: "",
   department: "",

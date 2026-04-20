@@ -52,6 +52,7 @@ const Signup = () => {
       schools={schools}
       selectedSchool={selectedSchool}
       onChange={handleChange}
+      onProfilePhotoChange={(file) => setFieldValue("profilePhoto", file)}
       onRoleChange={(role) => setFieldValue("role", role)}
       onSchoolChange={(schoolId) => {
         const school = schools.find((item) => item.id === schoolId);

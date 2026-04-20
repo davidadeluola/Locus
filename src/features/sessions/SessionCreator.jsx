@@ -9,6 +9,8 @@ import ActionButton from "../../components/ui/ActionButton";
 import SystemBadge from "../../components/ui/SystemBadge";
 import { useAuthContext } from "../../context/AuthContext";
 import { generateOTP, getCurrentLocation } from "../../lib/utils/attendanceUtils";
+import useBackNavigationGuard from "../../hooks/useBackNavigationGuard";
+import { emitLocalNotification } from "../../hooks/useRealtimeNotifications";
 
 const SessionCreator = () => {
   const { user, activeSession, setActiveSession } = useAuthContext();
@@ -17,6 +19,11 @@ const SessionCreator = () => {
   const [durationMinutes, setDurationMinutes] = useState(5);
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+
+  useBackNavigationGuard(
+    Boolean(activeSession?.id),
+    "An attendance session is still active. Leaving may interrupt your live monitoring. Leave anyway?"
+  );
 
   useEffect(() => {
     if (!user?.id) return;
@@ -183,6 +190,13 @@ const SessionCreator = () => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
+
+        emitLocalNotification({
+          title: 'Attendance Exported',
+          message: `${courseCode} attendance sheet exported as ${filename} on ${new Date().toLocaleString()}.`,
+          type: 'success',
+          createdAt: new Date().toISOString(),
+        });
       } catch (exportError) {
         console.warn('Failed to export attendance workbook:', exportError);
       }

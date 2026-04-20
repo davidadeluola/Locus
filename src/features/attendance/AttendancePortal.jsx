@@ -8,6 +8,8 @@ import LocationStatus from './components/LocationStatus';
 import OtpInput from './components/OtpInput';
 import SubmitButton from './components/SubmitButton';
 import ResultFeedback from './components/ResultFeedback';
+import useBackNavigationGuard from '../../hooks/useBackNavigationGuard';
+import useLocationPermission from '../../hooks/useLocationPermission';
 
 const AttendancePortal = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -18,6 +20,13 @@ const AttendancePortal = () => {
 
   const inputRefs = useRef([]);
   const { submitAttendance, loading, reset } = useAttendance();
+  const { permissionState, permissionsSupported, isSecure, refreshPermission } = useLocationPermission();
+
+  const hasStartedAttendanceFlow = loading || otp.some((digit) => digit !== '');
+  useBackNavigationGuard(
+    hasStartedAttendanceFlow,
+    "You have an in-progress attendance check-in. Leave this page anyway?"
+  );
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -52,9 +61,18 @@ const AttendancePortal = () => {
       const coords = await getCurrentLocation();
       setLocation(coords);
     } catch (err) {
-      setLocationError(err.message || 'Failed to get location');
+      if (err?.code === 1) {
+        setLocationError('Location permission denied. Please allow access and try again.');
+      } else if (err?.code === 2) {
+        setLocationError('Location is unavailable right now. Ensure GPS is enabled.');
+      } else if (err?.code === 3) {
+        setLocationError('Location request timed out. Move to an open area and retry.');
+      } else {
+        setLocationError(err?.message || 'Failed to get location');
+      }
     } finally {
       setGettingLocation(false);
+      refreshPermission();
     }
   };
 
@@ -82,7 +100,15 @@ const AttendancePortal = () => {
     <div className="space-y-6">
       <section className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
         <AttendanceHeader />
-        <LocationStatus location={location} locationError={locationError} gettingLocation={gettingLocation} onRetry={captureLocation} />
+        <LocationStatus
+          location={location}
+          locationError={locationError}
+          gettingLocation={gettingLocation}
+          onRetry={captureLocation}
+          permissionState={permissionState}
+          permissionsSupported={permissionsSupported}
+          isSecure={isSecure}
+        />
         <OtpInput otp={otp} inputRefs={inputRefs} onChange={handleOtpChange} onKeyDown={handleKeyDown} onPaste={handlePaste} />
         <SubmitButton onClick={handleSubmit} disabled={!isOtpComplete || !location || loading} loading={loading} />
       </section>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { User, Mail, Fingerprint, GraduationCap, Briefcase, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PasswordInput from "./PasswordInput";
@@ -13,6 +13,7 @@ const SignupFormCard = ({
   schools,
   selectedSchool,
   onChange,
+  onProfilePhotoChange,
   onRoleChange,
   onSchoolChange,
   onSubmit,
@@ -21,6 +22,21 @@ const SignupFormCard = ({
 }) => {
   const navigate = useNavigate();
   const displayError = error || googleError;
+  const [photoPreview, setPhotoPreview] = useState("");
+
+  useEffect(() => {
+    if (!formData.profilePhoto) {
+      setPhotoPreview("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(formData.profilePhoto);
+    setPhotoPreview(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [formData.profilePhoto]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#09090b] px-4 py-8">
@@ -92,6 +108,27 @@ const SignupFormCard = ({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-mono text-zinc-500">Profile Photo (Optional)</label>
+            <input
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={(event) => onProfilePhotoChange?.(event.target.files?.[0] || null)}
+              className="w-full px-4 py-3 bg-[#09090b] border border-zinc-800 rounded-xl focus:border-orange-500 outline-none text-zinc-100 file:mr-4 file:rounded-lg file:border-0 file:bg-orange-500/20 file:px-3 file:py-2 file:text-xs file:font-mono file:text-orange-300"
+            />
+            <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-wide">
+              Use camera on mobile for your field profile test.
+            </p>
+            {photoPreview ? (
+              <img
+                src={photoPreview}
+                alt="Selected profile preview"
+                className="h-20 w-20 rounded-xl border border-zinc-700 object-cover"
+              />
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
